@@ -1,0 +1,430 @@
+/* 版面：上方是捲在滾筒上的 A4 紙（只露出打字那一段），下方是薄荷綠機身與圓形鍵帽。刻意只有一種外觀：書桌上的一台打字機 */
+:root {
+  --desk: #2a2421;
+  --desk-2: #3a312c;
+  --enamel: #8fc3b4;
+  --enamel-dark: #5e9183;
+  --enamel-light: #b9ddd2;
+  --cap: #1c1d20;
+  --rim: #d8d9d3;
+  --legend: #f3f1ea;
+  --paper: #fcfbf6;
+  --ink: #23262d;
+  --ribbon: #c4372c;
+  --pen: #d42a24;      /* 老師的紅筆 */
+  --muted: #b8aea6;
+  --type: "Special Elite", "Noto Serif TC", "Courier New", monospace;
+  --cjk: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
+  --ui: "Courier Prime", "PingFang TC", "Noto Sans TC", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--desk);
+  color: var(--legend);
+  font-family: var(--ui);
+  display: flex; flex-direction: column; align-items: center;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 20px;
+  overflow-x: hidden;
+}
+.machine { width: 100%; max-width: 860px; display: flex; flex-direction: column; }
+/* 從右前上方斜斜看這台機器 */
+.scene { transform: perspective(1600px) rotateX(9deg) rotateY(-5deg); transform-origin: 50% 70%; display: flex; flex-direction: column; }
+
+/* 工具列 */
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.brand { font-family: var(--type); font-size: 22px; letter-spacing: .04em; color: var(--enamel-light); }
+.brand small { font-family: var(--ui); font-size: 12px; color: var(--muted); margin-left: 8px; letter-spacing: .08em; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.tool {
+  font: 700 13px var(--ui); color: var(--legend); background: transparent;
+  border: 1.5px solid var(--muted); border-radius: 999px; padding: 6px 12px; cursor: pointer;
+  min-height: 36px;
+}
+.tool[aria-pressed="true"] { background: var(--enamel); border-color: var(--enamel); color: var(--cap); }
+.tool:hover { border-color: var(--legend); }
+.tool:focus-visible, .key:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; }
+
+/* 紙張視窗 */
+.window {
+  /* 上下裁掉、左右不裁：紙會跟著滑架滑出機身兩側，跟真的一樣 */
+  position: relative; height: clamp(220px, 40vh, 380px);
+  clip-path: inset(0 -3000px 0 -3000px); cursor: text;
+  transform: perspective(900px) rotateX(9deg); transform-origin: 50% 100%;
+}
+.paper {
+  position: absolute; left: 0; top: 0; width: 794px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.08), 0 10px 30px rgba(0,0,0,.45);
+  transition: transform 70ms ease-out;
+  will-change: transform;
+}
+.paper.returning { transition: transform 320ms cubic-bezier(.3,.7,.2,1); }
+.line { position: absolute; left: 94px; white-space: nowrap; height: var(--lh); }
+.ch {
+  display: inline-block; text-align: center; font-family: var(--type); color: var(--ink);
+  font-size: var(--fs); line-height: var(--lh); width: var(--cw); vertical-align: top;
+  text-shadow: 0 0 .6px rgba(35,38,45,.55);
+}
+.ch.wide { width: calc(var(--cw) * 2); font-family: var(--cjk); font-size: calc(var(--fs) * .92); }
+/* 注音字：字和注音冷在一起的開源字型（字咳注音楷體），一個字寬 1.5 個字高，所以佔 3 格 */
+.bpmf .ch.wide { width: calc(var(--cw) * 3); font-family: "Bpmf Zihi Kai Std", var(--cjk); font-size: calc(var(--fs) * 1.15); }
+.pagebreak {
+  position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d6d2c4;
+  font: 11px var(--ui); color: #a39e8f; text-align: right; padding-right: 12px;
+}
+.pagebreak span { position: relative; top: -16px; }
+/* 打字點：紅色小箭頭與色帶 */
+.guide { position: absolute; left: 50%; width: 2px; pointer-events: none; z-index: 3; }
+/* 紙在滾筒上彎過去：上方淡出、靠近滾筒變暗 */
+.window::before { content: ""; position: absolute; left: -3000px; right: -3000px; z-index: 2; pointer-events: none; top: 0; height: 70px; background: linear-gradient(var(--desk), transparent); }
+.guide::before {
+  content: ""; position: absolute; left: -7px; bottom: -2px;
+  border: 7px solid transparent; border-bottom-color: var(--ribbon);
+}
+.strike {
+  position: absolute; left: 50%; width: 22px; height: 6px; margin-left: -11px; border-radius: 2px;
+  background: linear-gradient(var(--ink) 50%, var(--ribbon) 50%); opacity: .0; pointer-events: none; z-index: 3;
+}
+.strike.on { animation: strike 90ms ease-out; }
+@keyframes strike { 0% { opacity: .9; transform: translateY(6px); } 100% { opacity: 0; transform: translateY(0); } }
+
+/* 機身顏色：預設消光黑，可切換薄荷綠 */
+.machine {
+  --shell-hi: #4b4d52; --shell: #2a2b2f; --shell-lo: #17181a; --shell-side: #0c0c0e; --shell-well: #070808;
+  /* 消光烤漆的細顆粒 */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.machine[data-shell="mint"] { --shell-hi: #b9ddd2; --shell: #8fc3b4; --shell-lo: #5e9183; --shell-side: #3c675b; --shell-well: #0b0d0c; }
+
+/* 滑架：滾筒、兩邊旋鈕、換行拉桿、刻度尺，整組跟著紙左右滑 */
+.carriage { position: relative; height: 40px; margin-top: -4px; z-index: 4; }
+.track {
+  position: absolute; left: -24px; top: 0; width: calc(794px + 48px); height: 40px;
+  transition: transform 70ms ease-out; will-change: transform;
+}
+.track.returning { transition: transform 320ms cubic-bezier(.3,.7,.2,1); }
+/* 紙靠近滾筒的地方彎下去而變暗；放在滑架上，寬度剛好是紙寬 */
+.track::before {
+  content: ""; position: absolute; left: 24px; width: 794px; top: -70px; height: 56px; pointer-events: none;
+  background: linear-gradient(transparent, rgba(0,0,0,.28));
+}
+.roll {
+  position: absolute; left: 24px; right: 24px; top: 6px; height: 32px; border-radius: 16px;
+  background: linear-gradient(#55575c, #1a1b1e 38%, #0b0b0c 62%, #2b2c30 80%, #070708);
+  box-shadow: 0 8px 12px rgba(0,0,0,.55);
+}
+.knob {
+  position: absolute; top: 0; width: 44px; height: 44px; border-radius: 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 2px, transparent 2px 5px),
+    linear-gradient(90deg, #050505, #3c3d41 28%, #16171a 60%, #000);
+  box-shadow: 0 8px 10px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25);
+}
+.knob.l { left: -14px; } .knob.r { right: -14px; }
+/* 換行拉桿：從左邊旋鈕斜斜往左上伸出 */
+.lever {
+  position: absolute; left: -96px; top: 2px; width: 96px; height: 9px; border-radius: 5px;
+  transform-origin: 100% 50%; transform: rotate(20deg);
+  background: linear-gradient(#ffffff, #a4a59f 50%, #e4e4de);
+  box-shadow: 0 6px 6px rgba(0,0,0,.5);
+}
+.lever::before {
+  content: ""; position: absolute; left: -6px; top: -6px; width: 30px; height: 20px; border-radius: 6px;
+  background: linear-gradient(#f7f7f2, #9a9b95 55%, #dcdcd6); box-shadow: 0 3px 4px rgba(0,0,0,.5);
+}
+/* 刻度尺：每格一條細線，每 10 格一條長線 */
+.ruler {
+  position: absolute; left: 24px; width: 794px; top: -14px; height: 14px; border-radius: 3px;
+  background:
+    repeating-linear-gradient(90deg, rgba(30,30,30,.85) 0 1.5px, transparent 1.5px calc(var(--cw, 9.6px) * 10)) 94px 0 / auto 100% no-repeat,
+    repeating-linear-gradient(90deg, rgba(30,30,30,.6) 0 1px, transparent 1px var(--cw, 9.6px)) 94px 0 / auto 45% no-repeat,
+    linear-gradient(rgba(250,250,246,.85), rgba(190,191,185,.85));
+  box-shadow: 0 2px 3px rgba(0,0,0,.35);
+}
+
+/* 機身與鍵盤：光從左上來，左亮右暗、上亮下暗，跟鍵帽的反光方向一致 */
+.body {
+  position: relative; padding: 0 14px 22px; margin-top: -10px; border-radius: 14px 14px 30px 30px;
+  background:
+    var(--grain),
+    linear-gradient(100deg, rgba(255,255,255,.12), transparent 40%, rgba(0,0,0,.25)),
+    linear-gradient(var(--shell), var(--shell-lo));
+  /* 機身的厚度：往下、往右露出一截側面 */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 0 var(--shell-side), 7px 18px 0 var(--shell-side), 0 38px 50px rgba(0,0,0,.65);
+}
+/* 機蓋：滾筒前面隆起的一塊，中間開口看得到字錘與色帶 */
+.hood {
+  position: relative; height: 96px; margin: 0 -14px 16px; border-radius: 16px 16px 8px 8px;
+  background:
+    var(--grain),
+    linear-gradient(100deg, rgba(255,255,255,.16), transparent 45%, rgba(0,0,0,.22)),
+    linear-gradient(var(--shell-hi), var(--shell) 55%, var(--shell-lo));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -14px 10px -8px rgba(0,0,0,.35), 0 10px 12px -4px rgba(0,0,0,.65);
+}
+.basket {
+  position: absolute; left: 50%; top: 10px; width: min(300px, 46%); height: 74px; transform: translateX(-50%);
+  border-radius: 50% 50% 12px 12px / 90% 90% 12px 12px; overflow: hidden;
+  background: radial-gradient(120% 140% at 50% 0%, #2c2e31, #0a0a0b 70%);
+  box-shadow: inset 0 8px 12px rgba(0,0,0,.95), 0 1px 0 rgba(255,255,255,.22);
+}
+/* 一整排字錘：從打字點往下放射 */
+.fan {
+  position: absolute; inset: 0;
+  background: repeating-conic-gradient(from 90deg at 50% 4%, rgba(205,207,200,.7) 0 .9deg, transparent .9deg 5deg);
+  -webkit-mask: radial-gradient(circle at 50% 4%, transparent 34px, #000 36px, #000 66px, transparent 68px);
+          mask: radial-gradient(circle at 50% 4%, transparent 34px, #000 36px, #000 66px, transparent 68px);
+}
+.ribbon {
+  position: absolute; left: 12%; right: 12%; top: 12px; height: 8px; border-radius: 2px;
+  background: linear-gradient(#1b1b1b 50%, var(--ribbon) 50%); box-shadow: 0 3px 4px rgba(0,0,0,.7);
+}
+.ribbon::after {
+  content: ""; position: absolute; left: 50%; top: -4px; width: 16px; height: 16px; margin-left: -8px; border-radius: 3px;
+  background: linear-gradient(#f2f2ed, #8e8f89); clip-path: polygon(0 0, 100% 0, 100% 100%, 60% 100%, 60% 40%, 40% 40%, 40% 100%, 0 100%);
+}
+/* 打一個字，就有一根字錘彈上來 */
+.typebar {
+  position: absolute; left: 50%; top: 16px; width: 3px; height: 50px; margin-left: -1.5px; border-radius: 2px;
+  background: linear-gradient(90deg, #777, #f2f2ee, #777); transform-origin: 50% 0; opacity: 0;
+}
+.typebar.on { animation: swing 130ms ease-out; }
+@keyframes swing {
+  0% { opacity: 1; transform: rotate(var(--a, 30deg)); }
+  50% { opacity: 1; transform: rotate(0deg) scaleY(.25); }
+  100% { opacity: 0; transform: rotate(var(--a, 30deg)); }
+}
+.badge {
+  position: absolute; right: 7%; top: 38px; padding: 4px 12px; border-radius: 999px;
+  font: 700 10px var(--ui); letter-spacing: .22em; color: #3a3b36;
+  background: linear-gradient(#f6f6f1, #a6a7a0 50%, #e6e6e0);
+  box-shadow: 0 1px 2px rgba(0,0,0,.7), inset 0 1px 0 #fff;
+}
+@media (max-width: 520px) { .badge { display: none; } }
+.status {
+  display: flex; justify-content: center; gap: 18px; margin-top: 30px;
+  font: 12px var(--ui); color: var(--muted); letter-spacing: .06em; font-variant-numeric: tabular-nums;
+}
+/* 鍵盤往後仰，像真的打字機一排比一排高 */
+.keys { display: flex; flex-direction: column; gap: 2px; align-items: center;
+  /* 鍵盤坐在機身挖空的暗槽裡：上緣被機身擋住而更暗，鍵桿沒入黑暗 */
+  padding: 16px 10px 20px; border-radius: 18px;
+  background: radial-gradient(130% 100% at 45% 0%, #24282a, #111314 60%, var(--shell-well));
+  box-shadow: inset 0 14px 18px rgba(0,0,0,.8), inset 6px 0 12px rgba(0,0,0,.45), inset -2px -2px 0 rgba(255,255,255,.1), 0 1px 0 rgba(255,255,255,.45), 0 -1px 0 rgba(0,0,0,.25); }
+.row { display: flex; gap: 5px; justify-content: center; width: 100%; }
+.row:nth-child(2) { padding-left: 2%; } .row:nth-child(3) { padding-left: 5%; } .row:nth-child(4) { padding-left: 8%; }
+/* 鍵帽 = 鍍鉻圓筒（側面 .side）+ 鍍鉻外環（.rim）+ 凹進去、蓋著玻璃的字面（.face） */
+.key {
+  --size: min(54px, calc((100vw - 110px) / 11));
+  /* 跟機身用同一個角度看：從前上方俯看，圓鍵頂面壓成橢圓（--top），側面露在下方、稍微偏右 */
+  --top: calc(var(--size) * .8);
+  --d: calc(var(--size) * .36);
+  position: relative; width: var(--size); height: calc(var(--top) + var(--d)); flex: none;
+  background: none; border: 0; padding: 0; cursor: pointer; border-radius: 50%;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  filter: drop-shadow(3px 9px 6px rgba(0,0,0,.7));
+  transition: filter 45ms ease-out;
+}
+.key > span { position: absolute; left: 0; right: 0; border-radius: inherit; pointer-events: none; }
+/* 鍵帽下面的金屬鍵桿，往下伸進機身 */
+.key::before {
+  content: ""; position: absolute; z-index: -1; left: 50%; width: calc(var(--size) * .16); margin-left: calc(var(--size) * -.08);
+  top: calc(var(--top) * .6); bottom: -10px; border-radius: 2px;
+  background: linear-gradient(90deg, #2b2c28, #a9aaa3 45%, #3a3b36);
+}
+.key.wide::before { display: none; }
+.side {
+  top: var(--d); height: var(--top); left: calc(var(--d) * .18); right: calc(var(--d) * -.18);
+  background: linear-gradient(90deg, #55564f, #c6c7c0 16%, #fdfdf8 32%, #d7d8d1 50%, #8c8d87 76%, #46473f);
+  /* 圓筒側面下緣一圈暗線，像螺紋收口 */
+  box-shadow: inset 0 -3px 3px rgba(0,0,0,.45), inset 0 calc(var(--d) * -.35) 0 -1px rgba(0,0,0,.18);
+}
+.rim {
+  top: 0; height: var(--top);
+  background: conic-gradient(from 210deg, #fdfdf9, #95968f 13%, #ecece6 25%, #66675f 39%, #f7f7f2 54%, #a3a49d 69%, #ffffff 83%, #fdfdf9);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.95), inset 0 -1px 2px rgba(0,0,0,.4);
+  transition: transform 45ms ease-out;
+}
+/* 氧化：每顆鍵的程度（--tarnish）與黃斑位置（--sx、--sy）不同 */
+.rim::before, .side::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: multiply; opacity: var(--tarnish, .4);
+  background:
+    radial-gradient(circle at var(--sx, 30%) var(--sy, 70%), rgba(110,74,28,.85), transparent 36%),
+    radial-gradient(circle at calc(100% - var(--sx, 30%)) 88%, rgba(78,84,52,.6), transparent 30%),
+    radial-gradient(circle at 78% var(--sx, 30%), rgba(120,90,40,.45), transparent 22%),
+    repeating-conic-gradient(rgba(90,66,30,.16) 0 2deg, transparent 2deg 6deg),
+    rgba(160,128,72,.22);
+}
+.side::after { opacity: calc(var(--tarnish, .4) * 1.2); }
+.face {
+  position: absolute; inset: calc(var(--top) * .12) calc(var(--size) * .12); border-radius: inherit; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 32%, #3d3c3a, #121212 72%); color: #efe4c2;
+  font: 700 clamp(13px, 3.4vw, 21px) var(--ui);
+  box-shadow: inset 0 3px 5px rgba(0,0,0,.75), inset 0 -1px 1px rgba(255,255,255,.28), 0 0 0 1px rgba(0,0,0,.4);
+}
+/* 字面泛黃：連字一起染黃，邊緣比中間深 */
+.face::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; mix-blend-mode: multiply; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, transparent 35%, rgba(140,98,28,.5) 100%), rgba(224,184,90, var(--yellow, .2));
+}
+/* 玻璃面的反光 */
+.face::after {
+  content: ""; position: absolute; left: 12%; top: 6%; width: 64%; height: 38%; border-radius: 50%;
+  background: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0)); transform: rotate(-16deg);
+}
+.key.ivory .face { background: radial-gradient(circle at 50% 32%, #f5e9bf, #d6c084 78%); color: #1c1d20; }
+.key.mustard .face { background: radial-gradient(circle at 50% 32%, #f6cf8d, #cf8f3f 78%); color: #2a1d0e; }
+.key.red .face { background: radial-gradient(circle at 50% 32%, #e8665a, #9f281f 78%); color: #fff7ef; }
+.key.split .face { background: linear-gradient(165deg, #e2685b 0 48%, #17181b 48%); }
+.key.chrome .face { background: linear-gradient(#f4f4ef, #b9bab3 45%, #e7e7e1 55%, #9d9e97); color: #3a3b36; }
+.key.down .rim, .key:active .rim { transform: translateY(calc(var(--d) * .85)); }
+.key.down, .key:active { filter: drop-shadow(1px 3px 2px rgba(0,0,0,.7)); }
+.key.wide { width: calc(var(--size) * 1.7); border-radius: 999px; }
+.key.wide .face { font-size: clamp(11px, 2.8vw, 14px); letter-spacing: .05em; }
+.key.space { width: min(340px, 46vw); }
+.hint { margin-top: 12px; text-align: center; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.hint kbd { font-family: var(--ui); border: 1px solid var(--muted); border-radius: 4px; padding: 0 5px; }
+
+/* 確認與提示 */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--paper); color: var(--ink); padding: 10px 16px; border-radius: 10px;
+  font: 14px var(--ui); box-shadow: 0 8px 24px rgba(0,0,0,.4); max-width: calc(100% - 32px);
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; z-index: 5;
+}
+.toast button { font: 700 13px var(--ui); border-radius: 999px; padding: 6px 12px; cursor: pointer; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); }
+.toast button.danger { background: var(--ribbon); border-color: var(--ribbon); color: #fff; }
+
+/* 隱藏的輸入框放在打字點上：注音的選字視窗會跳在這裡 */
+/* 破音字：螢幕上底下有淡淡紅線，點了可以換讀音；列印時不印紅線 */
+.bpmf .ch.poly { cursor: pointer; border-radius: 3px; background: linear-gradient(transparent 90%, rgba(196,55,44,.35) 90%); }
+.bpmf .ch.poly:hover { background-color: rgba(196,55,44,.1); }
+.picker {
+  position: fixed; z-index: 6; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; max-width: calc(100vw - 16px);
+  background: var(--paper); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+.pick {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 64px; min-height: 44px; padding: 6px 8px;
+  border: 1.5px solid #d8d3c3; border-radius: 10px; background: #fff; color: var(--ink); cursor: pointer; font: 12px var(--cjk);
+}
+.pick .pg { font: 34px "Bpmf Zihi Kai Std", var(--cjk); line-height: 1.2; }
+.pick.on { border-color: var(--ribbon); background: #fff3ef; }
+.pick:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; }
+/* 右上角的全螢幕按鈕 */
+.fullscreen {
+  position: fixed; z-index: 5; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+  top: calc(12px + env(safe-area-inset-top, 0px)); right: calc(12px + env(safe-area-inset-right, 0px));
+  background: rgba(0,0,0,.35); border: 1.5px solid var(--muted); color: var(--legend);
+}
+.fullscreen:hover { background: rgba(0,0,0,.6); border-color: var(--legend); }
+.fullscreen:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; }
+.fullscreen path { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fullscreen .exit, .fullscreen.on .enter { display: none; }
+.fullscreen.on .exit { display: inline; }
+.bar { padding-right: 52px; }
+/* 每張紙最上方的日期 */
+.ch.bad { position: relative; }
+.ch.bad::after {
+  content: ""; position: absolute; inset: 6% -4%; border: 2px solid var(--pen); border-radius: 50%;
+  transform: rotate(-8deg); opacity: .9; pointer-events: none;
+}
+.score {
+  position: absolute; left: calc(794px - 94px + 6px); font: 700 54px/1 "Caveat", "Comic Sans MS", cursive; color: var(--pen);
+  transform: rotate(-9deg); transform-origin: 0 50%; pointer-events: none; white-space: nowrap;
+}
+/* 老師批改的兩條底線 */
+.score::after {
+  content: ""; position: absolute; left: -4px; right: -10px; bottom: -6px; height: 7px;
+  border-top: 3px solid var(--pen); border-bottom: 3px solid var(--pen); border-radius: 50% / 100%;
+  transform: rotate(-2deg);
+}
+.score small { font-size: .42em; margin-left: 2px; }
+.lesson .score-big { font: 700 60px/1 "Caveat", cursive; color: var(--pen); transform: rotate(-8deg); display: inline-block; margin-right: 8px; }
+.date { position: absolute; right: 94px; font: 15px var(--type); color: var(--ink); opacity: .85; letter-spacing: .04em; white-space: nowrap; }
+
+/* 練習卡：像一張字卡放在打字機前面 */
+.lesson {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; padding: 12px 14px; border-radius: 14px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+.lesson-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lesson-head label { font: 700 13px var(--ui); letter-spacing: .1em; color: var(--ribbon); }
+.lesson select { font: 600 15px var(--cjk); padding: 6px 10px; border-radius: 8px; border: 1.5px solid #cfc8b4; background: #fff; color: var(--ink); min-height: 40px; max-width: 100%; }
+.lesson-stat { font: 13px var(--ui); color: #6d675a; font-variant-numeric: tabular-nums; margin-left: auto; }
+.lesson .tool { color: var(--ink); border-color: #bdb5a0; }
+.lesson .tool:hover { border-color: var(--ink); }
+.tiles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.tile { flex: none; display: flex; flex-direction: column; align-items: center; min-width: 46px; padding: 4px 6px; border-radius: 8px; border: 1.5px solid transparent; }
+.tile b { font: 600 24px var(--cjk); }
+.tile small { font: 12px var(--cjk); color: #6d675a; white-space: nowrap; }
+.tile.punct { min-width: 18px; padding-inline: 0; }
+.tile.done { opacity: .4; }
+.tile.cur { border-color: var(--ribbon); background: #fff3ef; }
+.tile.wrong { opacity: 1; }
+.tile.wrong b { color: var(--pen); text-decoration: underline wavy var(--pen); }
+.chip.bad { border-color: var(--pen); color: var(--pen); }
+.lesson mark { background: none; color: var(--ribbon); font-weight: 700; }
+.now { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; min-height: 64px; }
+.now-char { display: flex; align-items: center; gap: 10px; }
+.now-char b { font: 600 56px var(--cjk); line-height: 1; }
+.now-char span { font: 600 26px var(--cjk); letter-spacing: .08em; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 46px; height: 50px; padding: 0 8px;
+  border-radius: 10px; border: 2px solid #cfc8b4; background: #fff; font: 600 22px var(--cjk); line-height: 1.1;
+}
+.chip em { font: 700 10px var(--ui); font-style: normal; color: #8a8473; }
+.chip.ok { background: #e4f1ec; border-color: #7fb5a6; color: #2f6b5c; }
+.chip.cur { border-color: var(--ribbon); box-shadow: 0 0 0 3px rgba(196,55,44,.2); }
+.chip.bad { animation: shake .25s; background: #ffe3dc; }
+.tip { font: 15px var(--cjk); color: #5d574b; }
+.done-msg { font: 600 20px var(--cjk); }
+.done-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+/* 下一個要按的鍵發亮 */
+.key.next .rim { box-shadow: inset 0 1px 1px rgba(255,255,255,.95), 0 0 0 3px #ffd36b, 0 0 16px 6px rgba(255,211,107,.75); animation: glow .9s ease-in-out infinite alternate; }
+@keyframes glow { from { filter: brightness(1); } to { filter: brightness(1.3); } }
+.key.shake { animation: shake .25s; }
+
+/* 複製圖片的備用畫面 */
+.shot { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.6); }
+.shot-card { display: flex; flex-direction: column; gap: 10px; align-items: center; max-width: 560px; max-height: 100%; padding: 14px; border-radius: 14px; background: var(--paper); color: var(--ink); font: 14px var(--cjk); }
+.shot-card img { max-width: 100%; max-height: 65vh; box-shadow: 0 4px 16px rgba(0,0,0,.3); }
+.shot-card .tool { color: var(--ink); border-color: #bdb5a0; }
+
+#ime { position: fixed; left: 0; top: 0; width: 1px; height: 1px; opacity: 0; font-size: 16px; border: 0; padding: 0; resize: none; }
+/* 正在拼的注音，浮在打字點上方 */
+.preedit {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 4; pointer-events: none;
+  font: 600 22px var(--cjk); color: var(--ink); background: #fffbe8; padding: 2px 10px; border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(0,0,0,.35); border-bottom: 2px solid var(--ribbon);
+}
+/* 鍵帽上的字：大字是現在的輸入法，右下角小字是另一種 */
+.face .main { position: relative; line-height: 1; }
+.face .main.zy { font-family: var(--cjk); font-size: 1.08em; }
+.face .sub { position: absolute; right: 17%; bottom: 13%; font-size: .48em; line-height: 1; opacity: .8; }
+.face .sub.zy { font-family: var(--cjk); }
+
+/* 列印：只印 A4 紙，一頁一張 */
+#print { display: none; }
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; height: auto; padding: 0 !important; display: block; }
+  body > *:not(#print) { display: none !important; }
+  #print { display: block; }
+  .sheet { position: relative; width: 210mm; height: 297mm; page-break-after: always; break-after: page; overflow: hidden; background: #fff; }
+  .sheet:last-child { page-break-after: auto; break-after: auto; }
+  .ch { text-shadow: none; }
+  .ch.poly { background: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .paper, .paper.returning, .track, .track.returning { transition: none; }
+  .strike.on, .typebar.on, .key.next .rim, .chip.bad, .key.shake { animation: none; }
+}

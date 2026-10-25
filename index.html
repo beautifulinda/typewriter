@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="復古打字機：A4 紙、打字聲、注音字與結合韻練習，大人小孩都喜愛。">
+<title>小小打字機</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Noto+Serif+TC:wght@600&family=Courier+Prime:wght@400;700&family=Bpmf+Zihi+Kai+Std&family=Caveat:wght@700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="machine">
+  <div class="bar">
+    <div class="brand">小小打字機<small>RETRO · A4</small></div>
+    <div class="tools">
+      <button class="tool" id="big" aria-pressed="false">大字</button>
+      <button class="tool" id="sound" aria-pressed="true">聲音 開</button>
+      <button class="tool" id="shell">機身 黑</button>
+      <button class="tool" id="layout" aria-pressed="false">鍵帽 ABC</button>
+      <button class="tool" id="bpmf" aria-pressed="false">注音字</button>
+      <button class="tool" id="practice-btn" aria-pressed="false">練習</button>
+      <button class="tool" id="ime-btn">注音／系統鍵盤</button>
+      <button class="tool" id="fresh">換新紙</button>
+      <button class="tool" id="print-btn">列印／存檔</button>
+    </div>
+  </div>
+
+  <section class="lesson" id="lesson" aria-label="打字練習" hidden>
+    <div class="lesson-head">
+      <label for="lesson-pick">練習</label>
+      <select id="lesson-pick"></select>
+      <span class="lesson-stat" id="lesson-stat" aria-live="polite"></span>
+      <button class="tool" id="lesson-close" type="button">結束練習</button>
+    </div>
+    <div class="tiles" id="tiles"></div>
+    <div class="now" id="now"></div>
+  </section>
+
+  <div class="scene">
+  <div class="window" id="window" aria-label="打字紙，點一下就可以開始打字">
+    <div class="paper" id="paper"></div>
+    <div class="strike" id="strike"></div>
+    <div class="guide" id="guide"></div>
+    <div class="preedit" id="preedit" hidden></div>
+  </div>
+  <div class="carriage" aria-hidden="true">
+    <div class="track" id="track">
+      <div class="lever"></div>
+      <div class="ruler"></div>
+      <div class="roll"></div>
+      <div class="knob l"></div><div class="knob r"></div>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="hood" aria-hidden="true">
+      <div class="basket"><div class="fan"></div><div class="ribbon"></div><div class="typebar" id="typebar"></div></div>
+      <div class="badge">LETTERA</div>
+    </div>
+    <div class="keys" id="keys"></div>
+  </div>
+  </div>
+    <div class="status"><span id="pos">第 1 頁 · 第 1 行 · 第 1 格</span><span id="count">0 字</span></div>
+    <div class="hint">直接用實體鍵盤打字；平板、手機可以點上面的圓鍵。<br>要打中文請按「注音／系統鍵盤」。<kbd>Enter</kbd> 換行會「叮」一聲，快到右邊邊界也會叮。<br>打開「注音字」後，底下有紅線的是破音字，點一下可以換讀音。注音字型與破音詞庫來自開源專案 bpmfvs（ButTaiwan）。</div>
+</div>
+
+<div class="picker" id="picker" role="dialog" aria-label="選讀音" hidden></div>
+<button class="fullscreen" id="fullscreen" type="button" aria-label="全螢幕" title="全螢幕" hidden>
+  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path class="enter" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><path class="exit" d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5"/></svg>
+</button>
+<div class="shot" id="shot" role="dialog" aria-label="紙張圖片" hidden>
+  <div class="shot-card">
+    <p>瀏覽器不讓網頁直接複製圖片。<b>按住圖片</b>（電腦按<b>右鍵</b>）就可以複製或儲存。</p>
+    <img id="shot-img" alt="這一頁紙的圖片">
+    <button class="tool" id="shot-close" type="button">關閉</button>
+  </div>
+</div>
+<textarea id="ime" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="打字輸入"></textarea>
+<div id="print" aria-hidden="true"></div>
+
+<!-- 照順序載入：後面的檔案會用到前面檔案的變數與函式 -->
+<script src="data/poyin.js"></script>
+<script src="data/lessons.js"></script>
+<script src="js/state.js"></script>
+<script src="js/zhuyin.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/paper.js"></script>
+<script src="js/keyboard.js"></script>
+<script src="js/export.js"></script>
+<script src="js/practice.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
