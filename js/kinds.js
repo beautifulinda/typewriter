@@ -1,10 +1,13 @@
-// ---------- 字的種類與紙上的編輯（純邏輯：只改 lines，不碰畫面、不發聲） ----------
+// ---------- 字的種類與紙上的編輯（純邏輯：只改 lines、算位置，不碰畫面、不發聲） ----------
 // 每種字一筆設定，加新的一種字只要在 KINDS 加一筆，排版、打字、退格都會照著做：
 //   is(ch)        這個字是不是這一種（照順序找，第一個符合的算）
 //   accepts(c)    打 c 時要不要開這一種字；init(ch, c) 開新字時補上這種字的欄位
 //   cells()       佔幾格；rows：有這種字的行要幾列高
 //   join(ch, c)   打 c 時能不能併進 ch 這一格：回傳 'join'（併進去，要重畫）、'close'（只結束、畫面不變）或 false
 //   back(ch)      退格時先從字裡退一部分：退了回傳 true；false 就整個字刪掉
+//   ink(ch, g)    要畫哪些筆畫（draw.js 照著畫到螢幕或 canvas）：位置以這一格的中心為 0、單位 px
+//                 { s, x, y, size, face, align, role } 是字；{ dot: true, x, y, r, role } 是圓點
+//   grid          畫注音練習簿的綠格子，字照 ink 的位置一個一個擺（沒有 grid 的字照一般文字排）
 // 存檔的字還是用 ch.zy、ch.w 記種類，舊的草稿不用轉換
 const KINDS = [
   {
@@ -12,7 +15,16 @@ const KINDS = [
     is: ch => !!ch.zy,
     accepts: c => isZy(c),
     init: (ch, c) => { ch.zy = true; ch.w = 2; if (ZY_PART(c) === 3) ch.done = true; },
-    cells: () => 3, rows: 2,
+    cells: () => 3, rows: 2, grid: true,
+    ink(ch, g) {
+      // 位置照 zyLayout 算（以字高為單位）；聲調掛在最後一個符號右上，輕聲是畫的圓點
+      const { syms, tone } = zyParts(ch), z = zyLayout(syms, tone === '˙');
+      const size = g.lh * ZY_SIZE, ts = g.lh * ZY_TONE;
+      const out = syms.map((s, k) => ({ s, x: 0, y: z.centers[k] * size, size, face: 'cjk', role: 'sym' }));
+      if (tone === '˙') out.push({ dot: true, x: 0, y: z.dotY * size, r: ZY_DOT * size, role: 'dot' });
+      else if (tone) out.push({ s: tone, x: size / 2 - ts * ZY_TONE_IN, y: z.toneY * size, size: ts, face: 'cjk', align: 'left', role: 'tone' });
+      return out;
+    },
     join(ch, c) {
       // 注音符號照順序接在同一個音節裡；還沒打聲調時按空白＝一聲，只結束音節、不空一格
       if (zyJoins(ch, c)) { ch.c += c; if (ZY_PART(c) === 3) ch.done = true; return 'join'; }
@@ -26,8 +38,20 @@ const KINDS = [
       return true;
     },
   },
-  { name: 'wide', is: ch => ch.w === 2, accepts: isWide, cells: () => bpmf ? 3 : 2, rows: 1 },   // 國字、全形標點（注音字要多一格放注音）
-  { name: 'narrow', is: () => true, accepts: () => true, cells: () => 1, rows: 1 },              // 英文、數字、空白
+  {
+    name: 'wide',                            // 國字、全形標點；注音字一個字寬 1.5 個字高，要多一格放注音
+    is: ch => ch.w === 2, accepts: isWide,
+    cells: () => bpmf ? 3 : 2, rows: 1,
+    ink: (ch, g) => [bpmf
+      ? { s: glyph(ch), x: 0, y: 0, size: g.fs * 1.15, face: 'bpmf', role: 'sym' }
+      : { s: glyph(ch), x: 0, y: 0, size: g.fs * .92, face: 'cjk', role: 'sym' }],
+  },
+  {
+    name: 'narrow',                          // 英文、數字、空白
+    is: () => true, accepts: () => true,
+    cells: () => 1, rows: 1,
+    ink: (ch, g) => [{ s: glyph(ch), x: 0, y: 0, size: g.fs, face: 'type', role: 'sym' }],
+  },
 ];
 const kindOf = ch => KINDS.find(k => k.is(ch));
 

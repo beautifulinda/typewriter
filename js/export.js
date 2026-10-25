@@ -3,11 +3,11 @@ function buildPrint() {
   const g = geo(), host = $('print');
   host.innerHTML = '';
   host.classList.toggle('bpmf', bpmf);
-  host.style.setProperty('--fs', g.fs + 'px'); host.style.setProperty('--lh', g.lh + 'px'); host.style.setProperty('--cw', g.cw + 'px');
+  host.style.setProperty('--lh', g.lh + 'px');
   const pages = pageCount();
   for (let p = 0; p < pages; p++) {
     const s = document.createElement('div'); s.className = 'sheet';
-    s.appendChild(dateEl(p, 42));
+    s.appendChild(dateEl(p, 0));
     renderSheet(s, p, g, p * PAGE_H);
     host.appendChild(s);
   }
@@ -23,7 +23,7 @@ $('print-btn').onclick = () => toast('要怎麼帶走這張紙？', [
   ['存成 PDF', savePdf],
   ['取消'],
 ]);
-// 把一頁紙畫到 canvas：位置、墨色、歪斜都跟螢幕上一樣
+// 把一頁紙畫到 canvas：每個字用 draw.js 的 drawChar，位置、墨色、歪斜都跟螢幕上一樣
 async function sheetCanvas(p, scale = 2) {
   const g = geo(), L = layoutRows(g);
   const text = lines.filter((_, i) => L[i].page === p).flat().map(ch => ch.c).join('') + pageDate(p);
@@ -38,58 +38,15 @@ async function sheetCanvas(p, scale = 2) {
   const x = c.getContext('2d');
   x.scale(scale, scale);
   x.fillStyle = '#fff'; x.fillRect(0, 0, PAGE_W, PAGE_H);
-  x.fillStyle = '#23262d'; x.textBaseline = 'middle';
-  x.save(); x.textAlign = 'right'; x.globalAlpha = .85; x.font = '15px "Special Elite", "Noto Serif TC", serif';
-  x.fillText(pageDate(p), PAGE_W - MARGIN, 52); x.restore();
-  x.textAlign = 'center';
+  drawDate(x, p);
   for (let i = 0; i < lines.length; i++) {
     if (L[i].page !== p) continue;
     let cx = MARGIN;
-    const top = lineTop(L[i], g) - p * PAGE_H, h = L[i].n * g.lh, cy = top + h / 2;
+    const top = lineTop(L[i], g) - p * PAGE_H, h = L[i].n * g.lh;
     for (const ch of lines[i]) {
-      const w = cells(ch) * g.cw;
-      if (ch.zy) {
-        // 注音格子：外框實線、中間虛線十字，不跟著字歪
-        x.save(); x.strokeStyle = '#7cbf5a'; x.globalAlpha = .8; x.lineWidth = 1;
-        x.strokeRect(cx + .5, top + .5, w - 1, h - 1);
-        x.setLineDash([2, 3]); x.beginPath();
-        x.moveTo(cx + w / 2, top); x.lineTo(cx + w / 2, top + h);
-        x.moveTo(cx, cy); x.lineTo(cx + w, cy); x.stroke(); x.restore();
-      }
-      if (ch.c !== ' ') {
-        x.save(); x.globalAlpha = ch.o;
-        x.translate(cx + w / 2, cy + ch.y); x.rotate(ch.r * Math.PI / 180);
-        x.font = ch.w === 2
-          ? (bpmf ? `${g.fs * 1.15}px "Bpmf Zihi Kai Std", "Noto Serif TC", serif` : `600 ${g.fs * .92}px "Noto Serif TC", serif`)
-          : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
-        if (ch.zy) {
-          // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
-          const { syms, tone } = zyParts(ch), z = zyLayout(syms, tone === '˙'), size = g.lh * ZY_SIZE;
-          x.font = `${size}px "Noto Serif TC", serif`;
-          syms.forEach((c, k) => x.fillText(c, 0, z.centers[k] * size));
-          if (z.dotY != null) { x.beginPath(); x.arc(0, z.dotY * size, ZY_DOT * size, 0, Math.PI * 2); x.fillStyle = '#23262d'; x.fill(); }
-          if (tone && tone !== '˙') {
-            const ts = g.lh * ZY_TONE;
-            x.font = `${ts}px "Noto Serif TC", serif`; x.textAlign = 'left';
-            x.fillText(tone, size / 2 - ts * .2, z.toneY * size);
-          }
-        } else x.fillText(glyph(ch), 0, 0);
-        x.restore();
-        if (ch.bad) {
-          x.save(); x.strokeStyle = '#d42a24'; x.lineWidth = 2; x.globalAlpha = .9;
-          x.beginPath(); x.ellipse(cx + w / 2, cy, w * .58, h * .44, -8 * Math.PI / 180, 0, Math.PI * 2); x.stroke(); x.restore();
-        }
-      }
-      if (ch.score != null) {
-        x.save(); x.fillStyle = '#d42a24'; x.strokeStyle = '#d42a24'; x.lineWidth = 3;
-        x.translate(PAGE_W - MARGIN + 6, cy - 4); x.rotate(-9 * Math.PI / 180);
-        x.textAlign = 'left'; x.font = '700 54px "Caveat", cursive'; x.fillText(String(ch.score), 0, 0);
-        const tw = x.measureText(String(ch.score)).width;
-        x.font = '700 23px "Caveat", "Noto Serif TC", cursive'; x.fillText('分', tw + 2, 7);
-        x.beginPath(); x.moveTo(-4, 26); x.lineTo(tw + 34, 24); x.moveTo(-2, 32); x.lineTo(tw + 32, 30); x.stroke();
-        x.restore();
-      }
-      cx += w;
+      drawChar(x, ch, g, cx, top, h);
+      if (ch.score != null) drawScore(x, ch.score, top);
+      cx += cells(ch) * g.cw;
     }
   }
   return c;

@@ -183,8 +183,10 @@ test('注音位置', 'ㄅㄚ˙ 和 ㄅㄚˋ 的 ㄅ、ㄚ 同高度', () => {
 // 所有聲母（含沒有聲母）× 韻母（單韻母、結合韻）× 聲調，實際畫在 canvas 上量筆畫：
 // 聲調／輕聲點不能碰到或貼太近注音，所有筆畫不能超出格子
 test('注音位置', '3344 種組合都不碰字、不超出格子', async () => {
-  await document.fonts.load('100px "Noto Serif TC"', 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˊˇˋ');
-  const S = 100, BH = 2 / ZY_SIZE * S, BW = (3 * .6) / (ZY_SIZE * 1.5) * S, TS = ZY_TONE / ZY_SIZE * S;
+  await document.fonts.load('600 100px "Noto Serif TC"', 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˊˇˋ');
+  // 用 kinds.js 的 ink 畫（跟螢幕、圖片同一份位置）；行高設成讓注音字高剛好 100px
+  const S = 100, lh = S / ZY_SIZE, g = { lh, fs: lh / 1.5, cw: lh / 1.5 * .6 };
+  const BH = KINDS[0].rows * lh, BW = KINDS[0].cells() * g.cw;
   // 跟注音筆畫至少要隔幾 px（字高 100px 時）：輕聲點目前最近約 16px、聲調最近約 8px（ㄓㄧˊ），低於這個就算貼在一起
   const DOT_GAP = 12, TONE_GAP = 4;
   const W = Math.ceil(BW) + 80, H = Math.ceil(BH) + 80, ox = W / 2, oy = H / 2;
@@ -197,12 +199,14 @@ test('注音位置', '3344 種組合都不碰字、不超出格子', async () =>
   const inside = D => { for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (D[(y * W + x) * 4 + 3] > 60 && (x < box[0] || x > box[2] || y < box[1] || y > box[3])) return false; return true; };
   const bad = []; let n = 0;
   for (const i of inits) for (const f of finals) for (const tone of ['˙', 'ˊ', 'ˇ', 'ˋ']) {
-    const syms = [...(i + f)], z = zyLayout(syms, tone === '˙'); n++;
+    n++;
     a.clearRect(0, 0, W, H); b.clearRect(0, 0, W, H);
-    a.font = `${S}px "Noto Serif TC"`; syms.forEach((s, k) => a.fillText(s, ox, oy + z.centers[k] * S));
-    if (tone === '˙') { b.beginPath(); b.arc(ox, oy + z.dotY * S, ZY_DOT * S, 0, 7); b.fill(); }
-    else { b.font = `${TS}px "Noto Serif TC"`; b.textAlign = 'left'; b.fillText(tone, ox + S / 2 - TS * .2, oy + z.toneY * S); b.textAlign = 'center'; }
+    // 注音符號畫在 a，聲調／輕聲點畫在 b，再比兩張的筆畫距離
+    for (const m of KINDS[0].ink({ c: i + f + tone, zy: true }, g)) {
+      fillMark(m.role === 'sym' ? a : b, m, ox, oy);
+    }
     const A = a.getImageData(0, 0, W, H).data, B = b.getImageData(0, 0, W, H).data;
+    if (!A.some((v, j) => j % 4 === 3 && v > 60) || !B.some((v, j) => j % 4 === 3 && v > 60)) { bad.push(i + f + tone + '（沒畫出來）'); continue; }
     let touch = false; const M = tone === '˙' ? DOT_GAP : TONE_GAP;
     for (let y = M; y < H - M && !touch; y++) for (let x = M; x < W - M && !touch; x++) {
       if (B[(y * W + x) * 4 + 3] <= 60) continue;
@@ -212,6 +216,31 @@ test('注音位置', '3344 種組合都不碰字、不超出格子', async () =>
   }
   eq(n, 3344, '組合數：');
   ok(!bad.length, `${bad.length} 種有問題：${bad.slice(0, 10).join('、')}`);
+});
+
+// 螢幕（DOM）和圖片（canvas）都照 ink 畫：量螢幕上每個符號的中心，要跟 ink 算的位置一樣
+test('注音位置', '螢幕上的位置跟圖片／PDF 一樣', async () => {
+  reset(); const g = geo();
+  // 紙在立體的機身裡（透視、縮放），量起來會變形，所以另外放在畫面左上角、沒有變形的地方量
+  const host = document.createElement('div');
+  host.className = 'line'; host.style.cssText = `position:fixed;left:0;top:0;z-index:-1;--lh:${g.lh}px`;
+  document.body.appendChild(host);
+  for (const zy of ['ㄌㄧㄤˊ', 'ㄏㄨㄚ˙', 'ㄢˇ']) {
+    const ch = { ...makeChar(zy[0]), c: zy, zy: true, w: 2, r: 0, y: 0 };
+    const el = charEl(ch); host.appendChild(el);
+    await document.fonts.load(`600 ${g.lh * ZY_SIZE}px "Noto Serif TC"`, zy);
+    const box = el.getBoundingClientRect(), cx = box.left + box.width / 2, cy = box.top + box.height / 2;
+    const got = [...el.querySelectorAll('.ink i')].map(i => {
+      const r = i.getBoundingClientRect();
+      return [(i.classList.contains('left') ? r.left : r.left + r.width / 2) - cx, r.top + r.height / 2 - cy];
+    });
+    const want = KINDS[0].ink(ch, g).map(m => [m.x, m.y]);
+    eq(got.length, want.length, zy + ' 筆畫數：');
+    got.forEach(([x, y], n) => ok(Math.abs(x - want[n][0]) < 1.5 && Math.abs(y - want[n][1]) < 1.5,
+      `${zy} 第 ${n + 1} 個：螢幕 (${x.toFixed(1)}, ${y.toFixed(1)})，ink (${want[n][0].toFixed(1)}, ${want[n][1].toFixed(1)})`));
+    el.remove();
+  }
+  host.remove();
 });
 
 // ---------- 執行與顯示結果 ----------

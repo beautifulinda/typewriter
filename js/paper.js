@@ -1,27 +1,4 @@
-// ---------- 畫紙 ----------
-function charEl(ch) {
-  const s = document.createElement('span');
-  s.className = ch.w === 2 ? 'ch wide' : 'ch';
-  if (ch.zy) {
-    const { syms, tone } = zyParts(ch);
-    s.classList.add('zy'); s.setAttribute('aria-label', ch.c);
-    // 墨色、歪斜只套在字上（.zy-ink），背後的格子保持端正
-    // 位置照 zyLayout 算（跟圖片／PDF 同一套數字），--y 是以字高為單位的上下位置
-    const z = zyLayout(syms, tone === '˙');
-    s.innerHTML = `<span class="zy-ink" style="opacity:${ch.o};transform:translateY(${ch.y}px) rotate(${ch.r}deg)">`
-      + syms.map((c, k) => `<i style="--y:${z.centers[k]}">${c}</i>`).join('')
-      + (tone === '˙' ? `<i class="zy-dot" style="--y:${z.dotY}"></i>` : '')
-      + (tone && tone !== '˙' ? `<i class="zy-tone" style="--y:${z.toneY}">${tone}</i>` : '') + '</span>';
-    spanOf.set(ch, s); chOf.set(s, ch);
-    return s;
-  } else s.textContent = glyph(ch);
-  if (bpmf && POYIN[ch.c]) s.classList.add('poly');
-  if (ch.bad) s.classList.add('bad');
-  spanOf.set(ch, s); chOf.set(s, ch);
-  s.style.opacity = ch.o;
-  s.style.transform = `translateY(${ch.y}px) rotate(${ch.r}deg)`;
-  return s;
-}
+// ---------- 畫紙（每個字怎麼畫在 draw.js） ----------
 // page 是 null 就畫全部（螢幕上一長條紙）；列印時一頁一頁畫
 function renderSheet(target, page, g, pageTop = 0) {
   const L = layoutRows(g);
@@ -36,19 +13,10 @@ function renderSheet(target, page, g, pageTop = 0) {
     if (sc) target.appendChild(scoreEl(sc.score, parseFloat(row.style.top)));
   }
 }
-function scoreEl(score, top) {
-  const el = document.createElement('div');
-  el.className = 'score'; el.style.top = (top - 22) + 'px';
-  el.innerHTML = `${score}<small>分</small>`;
-  el.setAttribute('aria-label', `${score} 分`);
-  return el;
-}
 let lineEls = [], pagesShown = 0;
 function renderAll() {
   const g = geo();
-  paper.style.setProperty('--fs', g.fs + 'px');
   paper.style.setProperty('--lh', g.lh + 'px');
-  paper.style.setProperty('--cw', g.cw + 'px');
   track.style.setProperty('--cw', g.cw + 'px');
   const pages = pagesShown = pageCount();
   paper.style.height = pages * PAGE_H + 'px';
@@ -59,7 +27,7 @@ function renderAll() {
     b.innerHTML = `<span>A4 第 ${p + 1} 頁</span>`;
     paper.appendChild(b);
   }
-  for (let p = 0; p < pages; p++) paper.appendChild(dateEl(p, p * PAGE_H + 42));
+  for (let p = 0; p < pages; p++) paper.appendChild(dateEl(p, p * PAGE_H));
   renderSheet(paper, null, g);
   lineEls = [...paper.querySelectorAll('.line')];
   place(false);

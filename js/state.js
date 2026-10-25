@@ -21,11 +21,6 @@ function pageDate(p) {
   const [y, m, d] = pageDates[p].split('-').map(Number);
   return `${y} 年 ${m} 月 ${d} 日 星期${'日一二三四五六'[new Date(y, m - 1, d).getDay()]}`;
 }
-function dateEl(p, top) {
-  const el = document.createElement('div');
-  el.className = 'date'; el.style.top = top + 'px'; el.textContent = pageDate(p);
-  return el;
-}
 // 隱藏輸入框跟著打字點走，系統的選字視窗才會出現在紙上
 function placeIme() {
   const r = guide.getBoundingClientRect();

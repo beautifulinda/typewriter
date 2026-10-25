@@ -75,33 +75,29 @@ body {
 .paper.returning { transition: transform 320ms cubic-bezier(.3,.7,.2,1); }
 .line { position: absolute; left: 94px; white-space: nowrap; height: var(--lh); }
 .ch {
-  display: inline-block; text-align: center; font-family: var(--type); color: var(--ink);
-  font-size: var(--fs); line-height: var(--lh); width: var(--cw); vertical-align: top;
+  display: inline-block; text-align: center; color: var(--ink);
+  line-height: var(--lh); vertical-align: top;
   text-shadow: 0 0 .6px rgba(35,38,45,.55);
 }
-.ch.wide { width: calc(var(--cw) * 2); font-family: var(--cjk); font-size: calc(var(--fs) * .92); }
-/* 注音字：字和注音冷在一起的開源字型（字咳注音楷體），一個字寬 1.5 個字高，所以佔 3 格 */
-.bpmf .ch.wide { width: calc(var(--cw) * 3); font-family: "Bpmf Zihi Kai Std", var(--cjk); font-size: calc(var(--fs) * 1.15); }
+/* 每個字的寬度、字型、大小由 draw.js 照字的種類（kinds.js）設定，跟圖片／PDF 同一套數字 */
 /* 直式注音音節：像注音練習簿，一個音節一個綠格子（中間虛線十字），注音寫在格子正中；上下行的格子接在一起
    符號由上往下疊，聲調在右邊；三個符號剛好放進一行高 */
 /* 有注音格子的行佔兩行高；同一行的其他字放在中間 */
 .line.tall { height: calc(var(--lh) * 2); }
 .line.tall .ch { line-height: calc(var(--lh) * 2); }
-.ch.zy { position: relative; display: inline-flex; justify-content: center; align-items: center; width: calc(var(--cw) * 3); height: calc(var(--lh) * 2); font-family: var(--cjk); }
-.ch.zy::before {
+.ch.grid { position: relative; }
+.ch.grid::before {
   content: ""; position: absolute; inset: 0; border: 1px solid var(--grid); pointer-events: none;
   background:
-    repeating-linear-gradient(to bottom, var(--grid) 0 2px, transparent 2px 5px) center / 1px 100% no-repeat,
-    repeating-linear-gradient(to right, var(--grid) 0 2px, transparent 2px 5px) center / 100% 1px no-repeat;
-  opacity: .8; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    repeating-linear-gradient(to bottom, var(--grid) 0 var(--grid-dash), transparent var(--grid-dash) var(--grid-step)) center / 1px 100% no-repeat,
+    repeating-linear-gradient(to right, var(--grid) 0 var(--grid-dash), transparent var(--grid-dash) var(--grid-step)) center / 100% 1px no-repeat;
+  opacity: var(--grid-alpha); -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-.ch.zy i { font-style: normal; }
-/* 每個符號的位置由 zyLayout 算好（--y，以字高為單位、0 = 格子正中），跟圖片／PDF 用同一套數字
-   字高 = 行高 × .68（ZY_SIZE）；聲調字高 = 行高 × .5（ZY_TONE），掛在注音右邊；輕聲是圓點 */
-.zy-ink { position: absolute; left: 50%; top: 50%; width: 0; height: 0; font-size: calc(var(--lh) * .68); }
-.zy-ink i { position: absolute; left: 0; top: calc(var(--y) * 1em); transform: translate(-50%, -50%); line-height: 1; white-space: nowrap; }
-.zy-ink .zy-tone { font-size: calc(var(--lh) * .5); left: calc(var(--lh) * (.68 * .5 - .5 * .2)); top: calc(var(--y) * var(--lh) * .68); transform: translateY(-50%); }
-.zy-ink .zy-dot { width: .14em; height: .14em; border-radius: 50%; background: currentColor; }
+/* 格子裡的字：.ink 在格子正中，每個符號的位置（px，以格子中心為 0）由 kinds.js 的 ink 算好、draw.js 擺上去 */
+.ink { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.ink i { position: absolute; font-style: normal; transform: translate(-50%, -50%); line-height: 1; white-space: nowrap; }
+.ink i.left { transform: translateY(-50%); }
+.ink .dot { border-radius: 50%; background: currentColor; }
 .pagebreak {
   position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d6d2c4;
   font: 11px var(--ui); color: #a39e8f; text-align: right; padding-right: 12px;
@@ -359,12 +355,12 @@ body {
 /* 每張紙最上方的日期 */
 .ch.bad { position: relative; }
 .ch.bad::after {
-  content: ""; position: absolute; inset: 6% -4%; border: 2px solid var(--pen); border-radius: 50%;
-  transform: rotate(-8deg); opacity: .9; pointer-events: none;
+  content: ""; position: absolute; left: 50%; top: 50%; width: var(--ring-w); height: var(--ring-h); border: 2px solid var(--pen); border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(var(--ring-rot)); opacity: .9; pointer-events: none; box-sizing: border-box;
 }
 .score {
-  position: absolute; left: calc(794px - 94px + 6px); font: 700 54px/1 "Caveat", "Comic Sans MS", cursive; color: var(--pen);
-  transform: rotate(-9deg); transform-origin: 0 50%; pointer-events: none; white-space: nowrap;
+  position: absolute; font-family: "Caveat", "Comic Sans MS", cursive; font-weight: 700; line-height: 1; color: var(--pen);
+  transform-origin: 0 50%; pointer-events: none; white-space: nowrap;
 }
 /* 老師批改的兩條底線 */
 .score::after {
@@ -372,9 +368,9 @@ body {
   border-top: 3px solid var(--pen); border-bottom: 3px solid var(--pen); border-radius: 50% / 100%;
   transform: rotate(-2deg);
 }
-.score small { font-size: .42em; margin-left: 2px; }
+.score small { margin-left: 2px; }
 .lesson .score-big { font: 700 60px/1 "Caveat", cursive; color: var(--pen); transform: rotate(-8deg); display: inline-block; margin-right: 8px; }
-.date { position: absolute; right: 94px; font: 15px var(--type); color: var(--ink); opacity: .85; letter-spacing: .04em; white-space: nowrap; }
+.date { position: absolute; font-family: var(--type); color: var(--ink); letter-spacing: .04em; white-space: nowrap; }
 
 /* 練習卡：像一張字卡放在打字機前面 */
 .lesson {
