@@ -7,7 +7,7 @@ function charEl(ch) {
     s.classList.add('zy'); s.setAttribute('aria-label', ch.c);
     // 墨色、歪斜只套在字上（.zy-ink），背後的格子保持端正
     s.innerHTML = `<span class="zy-ink" style="opacity:${ch.o};transform:translateY(${ch.y}px) rotate(${ch.r}deg)">`
-      + `<span class="zy-col">${tone === '˙' ? `<i class="zy-light${syms.length > 2 ? ' tight' : ''}">˙</i>` : ''}${syms.map((c, k) => `<i${zyTight(syms, k) ? ' class="tight"' : ''}>${c}</i>`).join('')}</span>`
+      + `<span class="zy-col">${tone === '˙' ? `<i class="zy-light${zyLayout(syms).cramped ? ' tight' : ''}">˙</i>` : ''}${syms.map((c, k) => `<i style="margin-top:${-zyTight(syms, k) * ZY_TIGHT}em">${c}</i>`).join('')}</span>`
       + (tone && tone !== '˙' ? `<i class="zy-tone" style="--ty:${zyLayout(syms).toneY}">${tone}</i>` : '') + '</span>';
     spanOf.set(ch, s); chOf.set(s, ch);
     return s;

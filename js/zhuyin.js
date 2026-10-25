@@ -11,15 +11,17 @@ const ZY_PART = c => /[ㄅ-ㄙ]/.test(c) ? 0 : /[ㄧㄨㄩ]/.test(c) ? 1 : /[ㄚ
 const isZy = c => ZY_PART(c) >= 0;
 // 字的大小（行高的倍數）：注音行是兩行高，三個符號 × 0.9 行距 ≈ 1.84 行高，格子上下還留一點空
 const ZY_SIZE = .68, ZY_TONE = .5;
-// 符號之間的行距；結合韻 ㄧ＋韻母（例如 ㄧㄤ）再靠近一點。
-// ㄧ 只是一橫、上下空很多才需要；ㄨ、ㄩ 字形高，再靠近會碰在一起
-const ZY_LH = .85, ZY_TIGHT = .12;
-const zyTight = (syms, k) => k > 0 && ZY_PART(syms[k]) === 2 && syms[k - 1] === 'ㄧ';
+// 符號之間的行距；ㄧ 只是一橫、上下空很多，跟前後的符號都再靠近（例如 ㄌㄧㄤ）。
+// ㄨ、ㄩ 字形高，再靠近會碰在一起，不另外靠近
+const ZY_LH = .85, ZY_TIGHT = .2;
+// 第 k 個符號要往上靠幾次（前一個是 ㄧ、自己是 ㄧ 各算一次）
+const zyTight = (syms, k) => k > 0 ? (syms[k] === 'ㄧ') + (syms[k - 1] === 'ㄧ') : 0;
 // 直排的位置（以字的大小為單位，0 = 整欄中間）：每個符號的中心、整欄高度、聲調的位置（最後一個符號的上緣）
 function zyLayout(syms) {
   const tops = []; let y = 0;
-  syms.forEach((c, k) => { if (zyTight(syms, k)) y -= ZY_TIGHT; tops.push(y); y += ZY_LH; });
-  return { centers: tops.map(t => t + ZY_LH / 2 - y / 2), height: y, toneY: tops[tops.length - 1] - y / 2 };
+  syms.forEach((c, k) => { y -= zyTight(syms, k) * ZY_TIGHT; tops.push(y); y += ZY_LH; });
+  // cramped：整欄太高、格子上方空間不夠放輕聲，輕聲要貼近第一個符號（例如 ㄏㄨㄚ˙）
+  return { centers: tops.map(t => t + ZY_LH / 2 - y / 2), height: y, toneY: tops[tops.length - 1] - y / 2, cramped: y > 2.25 };
 }
 // 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
 const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));
