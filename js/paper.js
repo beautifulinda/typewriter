@@ -2,7 +2,12 @@
 function charEl(ch) {
   const s = document.createElement('span');
   s.className = ch.w === 2 ? 'ch wide' : 'ch';
-  s.textContent = glyph(ch);
+  if (ch.zy) {
+    const { syms, tone } = zyParts(ch);
+    s.classList.add('zy'); s.setAttribute('aria-label', ch.c);
+    s.innerHTML = `<span class="zy-col">${tone === '˙' ? '<i>˙</i>' : ''}${syms.map(c => `<i>${c}</i>`).join('')}</span>`
+      + (tone && tone !== '˙' ? `<i class="zy-tone" style="--k:${(syms.length - 2) / 2}">${tone}</i>` : '');
+  } else s.textContent = glyph(ch);
   if (bpmf && POYIN[ch.c]) s.classList.add('poly');
   if (ch.bad) s.classList.add('bad');
   spanOf.set(ch, s); chOf.set(s, ch);
@@ -92,19 +97,32 @@ function newLine(withSound = true) {
   }
   place(true); saveSoon();
 }
+// 字錘打上去的動畫
+function hit() {
+  sounds.key(); strike.classList.remove('on'); void strike.offsetWidth; strike.classList.add('on');
+  typebar.style.setProperty('--a', (Math.random() * 140 - 70).toFixed(0) + 'deg');
+  typebar.classList.remove('on'); void typebar.offsetWidth; typebar.classList.add('on');
+}
+const redraw = ch => spanOf.get(ch)?.replaceWith(charEl(ch));
 function typeChar(c) {
   const g = geo();
-  const ch = makeChar(c);
   let line = lines[lines.length - 1];
+  const prev = line[line.length - 1];
+  // 注音符號接在同一個音節裡（同一格疊成直式），滑架不動
+  if (zyJoins(prev, c)) {
+    prev.c += c; if (ZY_PART(c) === 3) prev.done = true;
+    redraw(prev); hit(); buzz(6); saveSoon(); return;
+  }
+  // 音節還沒打聲調時按空白＝一聲，只結束這個音節，不空一格（跟注音輸入法一樣）
+  if (c === ' ' && prev?.zy && !prev.done) { prev.done = true; sounds.space(); saveSoon(); return; }
+  const ch = makeChar(c);
+  if (isZy(c)) { ch.zy = true; ch.w = 2; if (ZY_PART(c) === 3) ch.done = true; }
   // 小朋友友善：打到右邊界自動換行（真正的打字機會卡住）
   if (cellsOf(line) + cells(ch) > g.cols) { newLine(true); line = lines[lines.length - 1]; }
   line.push(ch);
   lineEls[lines.length - 1].appendChild(charEl(ch));
   resolveAround();
-  if (c === ' ') sounds.space(); else { sounds.key(); strike.classList.remove('on'); void strike.offsetWidth; strike.classList.add('on');
-    typebar.style.setProperty('--a', (Math.random() * 140 - 70).toFixed(0) + 'deg');
-    typebar.classList.remove('on'); void typebar.offsetWidth; typebar.classList.add('on');
-  }
+  if (c === ' ') sounds.space(); else hit();
   buzz(6);
   const left = g.cols - cellsOf(line);
   if (left === 6 || left === 5 && ch.w === 2) sounds.bell();             // 快到邊界的提醒鈴
@@ -112,6 +130,12 @@ function typeChar(c) {
 }
 function backspace() {
   let line = lines[lines.length - 1];
+  const last = line[line.length - 1];
+  // 注音音節一次退一個符號
+  if (last?.zy && [...last.c].length > 1) {
+    last.c = [...last.c].slice(0, -1).join(''); last.done = false;
+    redraw(last); sounds.back(); saveSoon(); return;
+  }
   if (line.length) {
     line.pop(); lineEls[lines.length - 1].lastChild?.remove(); resolveAround();
     sounds.back(); place(false);

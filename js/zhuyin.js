@@ -3,6 +3,18 @@
 const VS = j => j ? String.fromCodePoint(0xE01E0 + j) : '';
 const spanOf = new WeakMap(), chOf = new WeakMap();
 const glyph = ch => ch.c === ' ' ? ' ' : ch.c + (bpmf ? VS(ch.v || 0) : '');
+
+// ---------- 直式注音音節 ----------
+// 連著打的注音符號組成一個音節、佔一格，排成直式：聲母、介音、韻母由上往下，聲調在右邊，輕聲在最上面。
+// 字咍注音楷體只會在國字旁邊排注音，單獨的注音符號還是橫著排，所以自己排。
+const ZY_PART = c => /[ㄅ-ㄙ]/.test(c) ? 0 : /[ㄧㄨㄩ]/.test(c) ? 1 : /[ㄚ-ㄦ]/.test(c) ? 2 : /[ˊˇˋ˙]/.test(c) ? 3 : -1;
+const isZy = c => ZY_PART(c) >= 0;
+// 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
+const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));
+function zyParts(ch) {
+  const s = [...ch.c];
+  return { syms: s.filter(c => ZY_PART(c) < 3), tone: s.find(c => ZY_PART(c) === 3) || '' };
+}
 // 詞庫的詞用 * 代表這個字，例如「銀*」「*列」；挑前後文對得上、最長的那個詞
 function guessReading(text, i) {
   const c = text[i];

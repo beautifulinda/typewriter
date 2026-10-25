@@ -81,6 +81,12 @@ body {
 .ch.wide { width: calc(var(--cw) * 2); font-family: var(--cjk); font-size: calc(var(--fs) * .92); }
 /* 注音字：字和注音冷在一起的開源字型（字咳注音楷體），一個字寬 1.5 個字高，所以佔 3 格 */
 .bpmf .ch.wide { width: calc(var(--cw) * 3); font-family: "Bpmf Zihi Kai Std", var(--cjk); font-size: calc(var(--fs) * 1.15); }
+/* 直式注音音節：符號由上往下疊，聲調在右邊（三個符號會比行高稍微高一點） */
+.ch.zy { display: inline-flex; justify-content: center; align-items: center; height: var(--lh); font-family: var(--cjk); }
+.ch.zy i { font-style: normal; }
+.zy-col { display: flex; flex-direction: column; align-items: center; font-size: calc(var(--fs) * .6); line-height: 1; }
+/* 聲調標在最後一個符號的右上（跟課本一樣）：--k 依符號個數往上下移 */
+.zy-tone { font-size: calc(var(--fs) * .6); line-height: 1; margin-left: .05em; transform: translateY(calc(var(--fs) * .6 * var(--k, 0))); }
 .pagebreak {
   position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d6d2c4;
   font: 11px var(--ui); color: #a39e8f; text-align: right; padding-right: 12px;

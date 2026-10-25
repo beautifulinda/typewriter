@@ -53,7 +53,16 @@ async function sheetCanvas(p, scale = 2) {
         x.font = ch.w === 2
           ? (bpmf ? `${g.fs * 1.15}px "Bpmf Zihi Kai Std", "Noto Serif TC", serif` : `600 ${g.fs * .92}px "Noto Serif TC", serif`)
           : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
-        x.fillText(glyph(ch), 0, 0); x.restore();
+        if (ch.zy) {
+          // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
+          const { syms, tone } = zyParts(ch), col = tone === '˙' ? ['˙', ...syms] : syms, step = g.fs * .6;
+          const side = tone && tone !== '˙';
+          x.font = `${step}px "Noto Serif TC", serif`;
+          const ox = side ? -step * .3 : 0;
+          col.forEach((c, k) => x.fillText(c, ox, (k - (col.length - 1) / 2) * step));
+          if (side) x.fillText(tone, ox + step * .85, (syms.length - 2) / 2 * step);
+        } else x.fillText(glyph(ch), 0, 0);
+        x.restore();
         if (ch.bad) {
           x.save(); x.strokeStyle = '#d42a24'; x.lineWidth = 2; x.globalAlpha = .9;
           x.beginPath(); x.ellipse(cx + w / 2, cy, w * .58, g.lh * .44, -8 * Math.PI / 180, 0, Math.PI * 2); x.stroke(); x.restore();
