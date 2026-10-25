@@ -64,15 +64,14 @@ async function sheetCanvas(p, scale = 2) {
           : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
         if (ch.zy) {
           // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
-          const { syms, tone } = zyParts(ch), col = syms;
-          const size = g.lh * ZY_SIZE, step = size * .9;           // 行距 0.9，跟螢幕一樣
+          const { syms, tone } = zyParts(ch), z = zyLayout(syms), size = g.lh * ZY_SIZE;
           x.font = `${size}px "Noto Serif TC", serif`;
-          col.forEach((c, k) => x.fillText(c, 0, (k - (col.length - 1) / 2) * step));
-          if (tone === '˙') x.fillText('˙', 0, -col.length * step / 2 + size * (col.length > 2 ? .13 : -.13));   // 輕聲在第一個符號上方，不佔一列
+          syms.forEach((c, k) => x.fillText(c, 0, z.centers[k] * size));
+          if (tone === '˙') x.fillText('˙', 0, (-z.height / 2 + (syms.length > 2 ? .13 : -.13)) * size);   // 輕聲在第一個符號上方，不佔一列
           if (tone && tone !== '˙') {
             const ts = g.lh * ZY_TONE;
             x.font = `${ts}px "Noto Serif TC", serif`; x.textAlign = 'left';
-            x.fillText(tone, size / 2 - ts * .2, (syms.length - 2) / 2 * step);
+            x.fillText(tone, size / 2 - ts * .2, z.toneY * size);
           }
         } else x.fillText(glyph(ch), 0, 0);
         x.restore();
