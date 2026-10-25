@@ -12,7 +12,7 @@ const $ = id => document.getElementById(id);
 const win = $('window'), paper = $('paper'), guide = $('guide'), strike = $('strike'), ime = $('ime');
 const track = $('track'), typebar = $('typebar'), machine = document.querySelector('.machine');
 
-let mode = 'normal', soundOn = true, layout = 'en', bpmf = false;
+let mode = 'big', soundOn = true, layout = 'zhuyin', bpmf = false;   // 第一次打開：大字、ㄅㄆㄇ
 let practice = null;          // 練習模式進行中的狀態
 let pageDates = [];           // 每一頁開始打的日期（YYYY-MM-DD）
 const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
