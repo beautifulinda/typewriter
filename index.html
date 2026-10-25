@@ -91,5 +91,7 @@
 <script src="js/export.js"></script>
 <script src="js/practice.js"></script>
 <script src="js/main.js"></script>
+<!-- 網址加上 ?test 才會跑測試（tests/run.js），平常不會載入 -->
+<script>if (/[?&]test\b/.test(location.search)) document.write('<script src="tests/run.js"><\/script>');</script>
 </body>
 </html>
