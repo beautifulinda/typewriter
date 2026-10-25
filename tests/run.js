@@ -149,7 +149,7 @@ test('注音位置', 'ㄅㄚ˙ 和 ㄅㄚˋ 的 ㄅ、ㄚ 同高度', () => {
 test('注音位置', '3344 種組合都不碰字、不超出格子', async () => {
   await document.fonts.load('100px "Noto Serif TC"', 'ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄧㄨㄩㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦˊˇˋ');
   const S = 100, BH = 2 / ZY_SIZE * S, BW = (3 * .6) / (ZY_SIZE * 1.5) * S, TS = ZY_TONE / ZY_SIZE * S;
-  // 跟注音筆畫至少要隔幾 px（字高 100px 時）：輕聲點目前最近約 16px、聲調最近約 7px（ㄘㄧˋ），低於這個就算貼在一起
+  // 跟注音筆畫至少要隔幾 px（字高 100px 時）：輕聲點目前最近約 16px、聲調最近約 8px（ㄓㄧˊ），低於這個就算貼在一起
   const DOT_GAP = 12, TONE_GAP = 4;
   const W = Math.ceil(BW) + 80, H = Math.ceil(BH) + 80, ox = W / 2, oy = H / 2;
   const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true }); x.textAlign = 'center'; x.textBaseline = 'middle'; return x; };

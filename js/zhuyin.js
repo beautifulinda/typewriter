@@ -11,6 +11,8 @@ const ZY_PART = c => /[ㄅ-ㄙ]/.test(c) ? 0 : /[ㄧㄨㄩ]/.test(c) ? 1 : /[ㄚ
 const isZy = c => ZY_PART(c) >= 0;
 // 字的大小（行高的倍數）：注音行是兩行高，三個符號直排放得下，格子上下還留一點空
 const ZY_SIZE = .68, ZY_TONE = .5;
+// 聲調掛在最後一個符號的右上：中心比那個符號的上緣再往下多少（像課本那樣）
+const ZY_TONE_DROP = .25;
 // 符號之間的行距；ㄧ 只是一橫、上下空很多，跟前後的符號都再靠近（例如 ㄌㄧㄤ）。
 // ㄨ、ㄩ 字形高，再靠近會碰在一起，不另外靠近
 const ZY_LH = .85, ZY_TIGHT = .2;
@@ -19,7 +21,7 @@ const zyTight = (syms, k) => k > 0 ? (syms[k] === 'ㄧ') + (syms[k - 1] === 'ㄧ
 // 輕聲是畫的圓點（字型裡的 ˙ 位置算不準）：半徑、跟第一個符號的距離、離格子上緣至少多遠
 const ZY_DOT = .07, ZY_DOT_GAP = .12, ZY_DOT_EDGE = .14;   // 用所有聲母×韻母組合實際量筆畫調出來的
 // 直排的位置，螢幕和圖片／PDF 共用（以字的大小為單位，0 = 格子正中，往下是正）：
-// 每個符號的中心、聲調的中心（最後一個符號的上緣）、輕聲圓點的中心
+// 每個符號的中心、聲調的中心（最後一個符號的右上）、輕聲圓點的中心
 function zyLayout(syms, light = false) {
   const tops = []; let y = 0;
   syms.forEach((c, k) => { y -= zyTight(syms, k) * ZY_TIGHT; tops.push(y); y += ZY_LH; });
@@ -30,7 +32,7 @@ function zyLayout(syms, light = false) {
     top += Math.max(0, edge - (top - ZY_DOT_GAP));
     dotY = top - ZY_DOT_GAP;
   }
-  return { centers: tops.map(t => top + t + ZY_LH / 2), toneY: top + tops[tops.length - 1], dotY };
+  return { centers: tops.map(t => top + t + ZY_LH / 2), toneY: top + tops[tops.length - 1] + ZY_TONE_DROP, dotY };
 }
 // 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
 const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));
