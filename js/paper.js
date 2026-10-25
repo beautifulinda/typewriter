@@ -95,7 +95,11 @@ let saveTimer;
 const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); };
 
 function newLine(withSound = true) {
-  lines.push([]);
+  breakLine(lines);
+  showNewLine(withSound);
+}
+// 畫面上多一行（資料已經換行了）
+function showNewLine(withSound) {
   if (withSound) { sounds.ret(); sounds.bell(0.02); buzz(20); }
   ensurePage();
   if (lineEls.length < lines.length) {
@@ -114,25 +118,16 @@ function hit() {
   typebar.classList.remove('on'); void typebar.offsetWidth; typebar.classList.add('on');
 }
 const redraw = ch => spanOf.get(ch)?.replaceWith(charEl(ch));
+// 打字、退格：先由 typeInto／backFrom（kinds.js）改資料，這裡照回傳的結果更新畫面、出聲音
 function typeChar(c) {
   const g = geo();
-  let line = lines[lines.length - 1];
-  const prev = line[line.length - 1];
-  // 注音符號接在同一個音節裡（同一格疊成直式），滑架不動
-  if (zyJoins(prev, c)) {
-    prev.c += c; if (ZY_PART(c) === 3) prev.done = true;
-    redraw(prev); hit(); buzz(6); saveSoon(); return;
-  }
-  // 音節還沒打聲調時按空白＝一聲，只結束這個音節，不空一格（跟注音輸入法一樣）
-  if (c === ' ' && prev?.zy && !prev.done) { prev.done = true; sounds.space(); saveSoon(); return; }
-  const ch = makeChar(c);
-  if (isZy(c)) { ch.zy = true; ch.w = 2; if (ZY_PART(c) === 3) ch.done = true; }
-  // 小朋友友善：打到右邊界自動換行（真正的打字機會卡住）
-  if (cellsOf(line) + cells(ch) > g.cols) { newLine(true); line = lines[lines.length - 1]; }
-  // 這一行第一個注音格子：行變成兩行高，整張重畫
-  const grow = ch.zy && lineSpan(line) === 1;
-  line.push(ch);
-  if (grow) renderAll(); else lineEls[lines.length - 1].appendChild(charEl(ch));
+  const r = typeInto(lines, c, g.cols);
+  if (r.join) { redraw(r.join); hit(); buzz(6); saveSoon(); return; }      // 注音併進同一格，滑架不動
+  if (r.close) { sounds.space(); saveSoon(); return; }
+  const ch = r.add, line = lines.at(-1);
+  if (r.wrap) showNewLine(true);
+  // 這一行變高了（第一個注音格子）：整張重畫
+  if (r.grow) renderAll(); else lineEls[lines.length - 1].appendChild(charEl(ch));
   resolveAround();
   if (c === ' ') sounds.space(); else hit();
   buzz(6);
@@ -141,20 +136,14 @@ function typeChar(c) {
   place(false); saveSoon();
 }
 function backspace() {
-  let line = lines[lines.length - 1];
-  const last = line[line.length - 1];
-  // 注音音節一次退一個符號
-  if (last?.zy && [...last.c].length > 1) {
-    last.c = [...last.c].slice(0, -1).join(''); last.done = false;
-    redraw(last); sounds.back(); saveSoon(); return;
-  }
-  if (line.length) {
-    const tall = lineSpan(line) === 2;
-    line.pop(); lineEls[lines.length - 1].lastChild?.remove(); resolveAround();
-    if (tall && lineSpan(line) === 1) renderAll();
+  const r = backFrom(lines);
+  if (r.shrink) { redraw(r.shrink); sounds.back(); }
+  else if (r.pop) {
+    lineEls[lines.length - 1].lastChild?.remove(); resolveAround();
+    if (r.shrunk) renderAll();
     sounds.back(); place(false);
-  } else if (lines.length > 1) {
-    lines.pop(); lineEls.pop()?.remove();
+  } else if (r.unline) {
+    lineEls.pop()?.remove();
     sounds.back();
     if (!ensurePage()) place(true);
   }

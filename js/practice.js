@@ -2,8 +2,6 @@
 const TONE_TIP = { ' ': '一聲：按空白鍵', 'ˊ': '二聲：按 6', 'ˇ': '三聲：按 3', 'ˋ': '四聲：按 4', '˙': '輕聲：按 7' };
 const charOfSym = sym => Object.keys(ZHUYIN).find(c => ZHUYIN[c] === sym);
 const keyOfSym = sym => sym === ' ' ? keys.querySelector('[data-act="space"]') : keys.querySelector(`.key[data-char="${CSS.escape(charOfSym(sym) || '')}"]`);
-// 注音拆成要按的鍵：聲母韻母照順序，最後是聲調（一聲按空白）
-const keysOf = zy => [...zy.replace(/[ˊˇˋ˙]/g, ''), (zy.match(/[ˊˇˋ]$/) || [])[0] || (zy[0] === '˙' ? '˙' : ' ')];
 const FINAL_RE = /([ㄧㄨㄩ])([ㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥ])/;
 const markFinal = zy => zy.replace(FINAL_RE, '<mark>$1$2</mark>');
 const lessonEl = $('lesson'), tilesEl = $('tiles'), nowEl = $('now');
@@ -35,9 +33,9 @@ function skipPunct() {
   const items = practice.lesson.items;
   while (practice.i < items.length && !items[practice.i][1]) { typeChar(items[practice.i][0]); practice.i++; }
   if (practice.i < items.length) { practice.keys = keysOf(items[practice.i][1]); return; }
-  // 打完了：一個字 100 ÷ 字數 分，打對才算；打錯但交出去前有訂正也算對
+  // 打完了（判分規則在 scoring.js）
   practice.done = true;
-  practice.score = Math.round(100 * practice.results.filter(Boolean).length / practice.results.length);
+  practice.score = lessonScore(practice.results);
   if (practice.anchor) practice.anchor.score = practice.score;
   newLine(true); renderAll(); saveSoon();
   setTimeout(() => sounds.bell(), 350);
@@ -56,8 +54,8 @@ function practiceInput(sym) {
   typed.push(sym);
   if (sym === want[j]) sym === ' ' ? sounds.space() : sounds.back();
   else { sounds.oops(); buzz(30); practice.flash = true; }
-  if (typed.length === want.length) {          // 按完最後一個鍵（聲調）就交出這個字
-    const right = typed.every((t, n) => t === want[n]);
+  if (wordDone(typed, want)) {                 // 按完最後一個鍵（聲調）就交出這個字
+    const right = wordRight(typed, want);
     const [c, zy] = practice.lesson.items[practice.i];
     const ch = typeWithReading(c, zy);
     if (!right && ch) { ch.bad = true; spanOf.get(ch)?.classList.add('bad'); }
@@ -111,7 +109,7 @@ function renderPractice() {
     return;
   }
   const [c, zy] = items[i], want = practice.keys, typed = practice.typed, fm = zy.match(FINAL_RE);
-  const wrongAt = typed.findIndex((t, n) => t !== want[n]);
+  const wrongAt = firstWrong(typed, want);
   const exp = want[typed.length];
   const name = sy => sy === ' ' ? '空白' : sy;
   const tip = wrongAt >= 0 ? `「${name(want[wrongAt])}」打成「${name(typed[wrongAt])}」了，按「退格」訂正喔！`

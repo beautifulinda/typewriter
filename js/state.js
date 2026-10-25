@@ -42,13 +42,13 @@ const geo = () => {
   return { ...m, cw, cols: Math.floor((PAGE_W - MARGIN * 2) / cw), rows: Math.floor((PAGE_H - MARGIN * 2) / m.lh) };
 };
 const isWide = c => /[ᄀ-ᅟ⺀-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦\u{20000}-\u{3fffd}]/u.test(c);
-const cells = ch => ch.zy ? 3 : ch.w === 2 ? (bpmf ? 3 : 2) : 1;
-// 有注音格子的行佔兩行高（格子要放得下三個符號直排，行距 0.9）
-const lineSpan = line => line.some(ch => ch.zy) ? 2 : 1;
+// 一個字佔幾格、一行佔幾列，照字的種類（KINDS，在 kinds.js）：例如有注音格子的行佔兩行高
+const cells = ch => kindOf(ch).cells();
+const lineSpan = line => Math.max(1, ...line.map(ch => kindOf(ch).rows));
 // 每一行在第幾頁、從第幾列開始、佔幾列；一行不會跨頁
-function layoutRows(g = geo()) {
+function layoutRows(g = geo(), ls = lines) {
   const out = []; let page = 0, row = 0;
-  for (const line of lines) {
+  for (const line of ls) {
     const n = lineSpan(line);
     if (row + n > g.rows) { page++; row = 0; }
     out.push({ page, row, n }); row += n;
@@ -56,7 +56,7 @@ function layoutRows(g = geo()) {
   return out;
 }
 const lineTop = (pos, g) => MARGIN + pos.row * g.lh + pos.page * PAGE_H;
-const pageCount = () => layoutRows().at(-1).page + 1;
+const pageCount = (ls = lines) => layoutRows(geo(), ls).at(-1).page + 1;
 const cellsOf = line => line.reduce((n, ch) => n + cells(ch), 0);
 const makeChar = c => ({
   c, w: isWide(c) ? 2 : 1,

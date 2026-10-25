@@ -41,6 +41,42 @@ function press(code, { shift = false, key = '', target = document.body } = {}) {
 }
 const tap = sel => keys.querySelector(sel).dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
 
+// ---------- 純邏輯：直接呼叫 kinds.js、scoring.js，不經過畫面 ----------
+// 自己準備一份 lines，打完看資料和回傳值，畫面上的紙不會動
+const typeAll = (ls, s, cols = 36) => [...s].map(c => typeInto(ls, c, cols));
+test('純邏輯', '字的種類：注音、國字、英文', () => {
+  const ls = [[]]; typeAll(ls, 'ㄅ我a');
+  eq(ls[0].map(ch => kindOf(ch).name), ['zy', 'wide', 'narrow']);
+  eq(ls[0].map(cells), [3, bpmf ? 3 : 2, 1]);
+});
+test('純邏輯', 'typeInto 回傳畫面要做的事', () => {
+  const ls = [[]];
+  const [r1, r2, r3, r4] = typeAll(ls, 'ㄅㄚ  ');
+  ok(r1.add && r1.grow && !r1.wrap, '第一個注音：新的一格、行變高');
+  eq(r2.join, ls[0][0], '第二個符號併進去：');
+  eq(r3.close, ls[0][0], '空白＝一聲：');
+  ok(r4.add && !r4.grow, '再一個空白才空一格');
+  eq(ls[0].map(ch => ch.c), ['ㄅㄚ', ' ']);
+});
+test('純邏輯', '打到右邊界自動換行', () => {
+  const ls = [[]]; const rs = typeAll(ls, 'abcd', 3);
+  ok(rs[3].wrap, '第 4 個字要換行'); eq(ls.map(l => l.length), [3, 1]);
+});
+test('純邏輯', 'backFrom：退符號、刪字、刪空行', () => {
+  const ls = [[]]; typeAll(ls, 'ㄅㄚ'); breakLine(ls);
+  eq(backFrom(ls), { unline: true }); eq(ls.length, 1);
+  eq(backFrom(ls).shrink?.c, 'ㄅ');
+  const r = backFrom(ls); ok(r.pop && r.shrunk, '刪掉最後一個注音：行變矮');
+  eq(backFrom(ls), {}, '已經退到最前面：');
+});
+test('純邏輯', '練習判分', () => {
+  eq(keysOf('ㄒㄧㄝˊ'), ['ㄒ', 'ㄧ', 'ㄝ', 'ˊ']); eq(keysOf('ㄅㄚ'), ['ㄅ', 'ㄚ', ' ']); eq(keysOf('˙ㄉㄜ'), ['ㄉ', 'ㄜ', '˙']);
+  const want = ['ㄅ', 'ㄚ', 'ˋ'];
+  eq(firstWrong(['ㄅ', 'ㄆ'], want), 1); ok(!wordDone(['ㄅ'], want), '還沒按完');
+  ok(wordRight(want, want), '全對'); ok(!wordRight(['ㄆ', 'ㄚ', 'ˋ'], want), '有錯');
+  eq(lessonScore([true, true, false, true]), 75);
+});
+
 // ---------- 注音合併成音節 ----------
 test('注音音節', 'ㄅㄚˋ 合成一格，打了聲調就結束', () => {
   reset(); type('ㄅㄚˋ');

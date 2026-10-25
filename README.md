@@ -26,9 +26,11 @@ index.html          畫面結構
 style.css           外觀（機身、鍵帽、紙張、練習卡）
 js/                 照 index.html 的順序載入，共用最上層的變數
   state.js          共用設定、狀態、紙張格子計算、日期
-  zhuyin.js         破音字判斷、注音鍵盤配置
+  zhuyin.js         破音字判斷、直式注音位置、注音鍵盤配置
+  kinds.js          字的種類（佔幾格、幾列、怎麼併、怎麼退），打字與退格只改資料的部分
+  scoring.js        練習判分（拆鍵、對錯、分數）
   sound.js          打字聲、鈴聲（Web Audio 合成）
-  paper.js          紙張排版、滑架、打字與換行
+  paper.js          畫紙、滑架，照 kinds.js 的結果更新畫面與聲音
   keyboard.js       實體鍵盤、輸入法、畫面上的圓鍵
   export.js         列印、複製成圖片、存成 PDF
   practice.js       練習模式與計分
