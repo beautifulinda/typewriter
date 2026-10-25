@@ -19,11 +19,14 @@ function charEl(ch) {
   s.style.transform = `translateY(${ch.y}px) rotate(${ch.r}deg)`;
   return s;
 }
-function renderSheet(target, from, to, g, pageTop = 0) {
-  for (let i = from; i < to; i++) {
+// page 是 null 就畫全部（螢幕上一長條紙）；列印時一頁一頁畫
+function renderSheet(target, page, g, pageTop = 0) {
+  const L = layoutRows(g);
+  for (let i = 0; i < lines.length; i++) {
+    if (page != null && L[i].page !== page) continue;
     const row = document.createElement('div');
-    row.className = 'line';
-    row.style.top = (MARGIN + (i % g.rows) * g.lh + Math.floor(i / g.rows) * PAGE_H - pageTop) + 'px';
+    row.className = L[i].n === 2 ? 'line tall' : 'line';
+    row.style.top = (lineTop(L[i], g) - pageTop) + 'px';
     lines[i].forEach(ch => row.appendChild(charEl(ch)));
     target.appendChild(row);
     const sc = lines[i].find(ch => ch.score != null);
@@ -37,14 +40,14 @@ function scoreEl(score, top) {
   el.setAttribute('aria-label', `${score} 分`);
   return el;
 }
-let lineEls = [];
+let lineEls = [], pagesShown = 0;
 function renderAll() {
   const g = geo();
   paper.style.setProperty('--fs', g.fs + 'px');
   paper.style.setProperty('--lh', g.lh + 'px');
   paper.style.setProperty('--cw', g.cw + 'px');
   track.style.setProperty('--cw', g.cw + 'px');
-  const pages = Math.max(1, Math.ceil(lines.length / g.rows));
+  const pages = pagesShown = pageCount();
   paper.style.height = pages * PAGE_H + 'px';
   paper.innerHTML = '';
   for (let p = 1; p < pages; p++) {
@@ -54,32 +57,33 @@ function renderAll() {
     paper.appendChild(b);
   }
   for (let p = 0; p < pages; p++) paper.appendChild(dateEl(p, p * PAGE_H + 42));
-  renderSheet(paper, 0, lines.length, g);
+  renderSheet(paper, null, g);
   lineEls = [...paper.querySelectorAll('.line')];
   place(false);
 }
 function place(returning) {
   const g = geo();
-  const li = lines.length - 1;
+  const li = lines.length - 1, pos = layoutRows(g)[li];
   const caret = MARGIN + cellsOf(lines[li]) * g.cw;
-  const lineTop = MARGIN + (li % g.rows) * g.lh + Math.floor(li / g.rows) * PAGE_H;
+  const top = lineTop(pos, g);
   const typeY = win.clientHeight - 26;                    // 打字點在滾筒正上方
   const x = win.clientWidth / 2 - caret - g.cw / 2;
   paper.classList.toggle('returning', !!returning);
-  paper.style.transform = `translate(${x}px, ${typeY - lineTop - g.lh}px)`;
+  paper.style.transform = `translate(${x}px, ${typeY - top - pos.n * g.lh}px)`;
   track.classList.toggle('returning', !!returning);
   track.style.transform = `translateX(${x}px)`;
   guide.style.top = (typeY - 2) + 'px'; guide.style.height = '0';
   strike.style.top = (typeY - g.lh * 0.55) + 'px';
   const total = lines.reduce((n, l) => n + l.filter(c => c.c !== ' ').length, 0);
-  $('pos').textContent = `第 ${Math.floor(li / g.rows) + 1} 頁 · 第 ${li % g.rows + 1} 行 · 第 ${cellsOf(lines[li]) + 1} 格`;
+  $('pos').textContent = `第 ${pos.page + 1} 頁 · 第 ${pos.row + 1} 行 · 第 ${cellsOf(lines[li]) + 1} 格`;
   $('count').textContent = `${total} 字`;
   $('preedit').style.top = (typeY - g.lh - 44) + 'px';
   placeIme();
 }
+// 頁數變了（多一張紙或少一張）就整張重畫：分頁線、日期、紙的長度
 function ensurePage() {
-  const g = geo();
-  if (lines.length % g.rows === 1 && lines.length > 1) renderAll();
+  if (pageCount() !== pagesShown) { renderAll(); return true; }
+  return false;
 }
 
 // ---------- 打字 ----------
@@ -95,8 +99,7 @@ function newLine(withSound = true) {
     const g = geo();
     const row = document.createElement('div');
     row.className = 'line';
-    const i = lines.length - 1;
-    row.style.top = (MARGIN + (i % g.rows) * g.lh + Math.floor(i / g.rows) * PAGE_H) + 'px';
+    row.style.top = lineTop(layoutRows(g).at(-1), g) + 'px';
     paper.appendChild(row); lineEls.push(row);
   }
   place(true); saveSoon();
@@ -123,8 +126,10 @@ function typeChar(c) {
   if (isZy(c)) { ch.zy = true; ch.w = 2; if (ZY_PART(c) === 3) ch.done = true; }
   // 小朋友友善：打到右邊界自動換行（真正的打字機會卡住）
   if (cellsOf(line) + cells(ch) > g.cols) { newLine(true); line = lines[lines.length - 1]; }
+  // 這一行第一個注音格子：行變成兩行高，整張重畫
+  const grow = ch.zy && lineSpan(line) === 1;
   line.push(ch);
-  lineEls[lines.length - 1].appendChild(charEl(ch));
+  if (grow) renderAll(); else lineEls[lines.length - 1].appendChild(charEl(ch));
   resolveAround();
   if (c === ' ') sounds.space(); else hit();
   buzz(6);
@@ -141,12 +146,14 @@ function backspace() {
     redraw(last); sounds.back(); saveSoon(); return;
   }
   if (line.length) {
+    const tall = lineSpan(line) === 2;
     line.pop(); lineEls[lines.length - 1].lastChild?.remove(); resolveAround();
+    if (tall && lineSpan(line) === 1) renderAll();
     sounds.back(); place(false);
   } else if (lines.length > 1) {
     lines.pop(); lineEls.pop()?.remove();
     sounds.back();
-    const g = geo(); if (lines.length % g.rows === 0) renderAll(); else place(true);
+    if (!ensurePage()) place(true);
   }
   saveSoon();
 }

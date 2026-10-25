@@ -9,6 +9,8 @@ const glyph = ch => ch.c === ' ' ? ' ' : ch.c + (bpmf ? VS(ch.v || 0) : '');
 // 字咍注音楷體只會在國字旁邊排注音，單獨的注音符號還是橫著排，所以自己排。
 const ZY_PART = c => /[ㄅ-ㄙ]/.test(c) ? 0 : /[ㄧㄨㄩ]/.test(c) ? 1 : /[ㄚ-ㄦ]/.test(c) ? 2 : /[ˊˇˋ˙]/.test(c) ? 3 : -1;
 const isZy = c => ZY_PART(c) >= 0;
+// 字的大小（行高的倍數）：注音行是兩行高，三個符號 × 0.9 行距 ≈ 1.84 行高，格子上下還留一點空
+const ZY_SIZE = .68, ZY_TONE = .5;
 // 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
 const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));
 function zyParts(ch) {

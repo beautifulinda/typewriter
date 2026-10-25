@@ -4,11 +4,11 @@ function buildPrint() {
   host.innerHTML = '';
   host.classList.toggle('bpmf', bpmf);
   host.style.setProperty('--fs', g.fs + 'px'); host.style.setProperty('--lh', g.lh + 'px'); host.style.setProperty('--cw', g.cw + 'px');
-  const pages = Math.max(1, Math.ceil(lines.length / g.rows));
+  const pages = pageCount();
   for (let p = 0; p < pages; p++) {
     const s = document.createElement('div'); s.className = 'sheet';
     s.appendChild(dateEl(p, 42));
-    renderSheet(s, p * g.rows, Math.min(lines.length, (p + 1) * g.rows), g, p * PAGE_H);
+    renderSheet(s, p, g, p * PAGE_H);
     host.appendChild(s);
   }
 }
@@ -25,8 +25,8 @@ $('print-btn').onclick = () => toast('要怎麼帶走這張紙？', [
 ]);
 // 把一頁紙畫到 canvas：位置、墨色、歪斜都跟螢幕上一樣
 async function sheetCanvas(p, scale = 2) {
-  const g = geo(), from = p * g.rows, to = Math.min(lines.length, (p + 1) * g.rows);
-  const text = lines.slice(from, to).flat().map(ch => ch.c).join('') + pageDate(p);
+  const g = geo(), L = layoutRows(g);
+  const text = lines.filter((_, i) => L[i].page === p).flat().map(ch => ch.c).join('') + pageDate(p);
   await Promise.all([
     document.fonts.load(`${g.fs}px "Special Elite"`, 'Aa1'),
     document.fonts.load('700 64px "Caveat"', '0123456789'),
@@ -42,18 +42,18 @@ async function sheetCanvas(p, scale = 2) {
   x.save(); x.textAlign = 'right'; x.globalAlpha = .85; x.font = '15px "Special Elite", "Noto Serif TC", serif';
   x.fillText(pageDate(p), PAGE_W - MARGIN, 52); x.restore();
   x.textAlign = 'center';
-  for (let i = from; i < to; i++) {
+  for (let i = 0; i < lines.length; i++) {
+    if (L[i].page !== p) continue;
     let cx = MARGIN;
-    const cy = MARGIN + (i - from) * g.lh + g.lh / 2;
+    const top = lineTop(L[i], g) - p * PAGE_H, h = L[i].n * g.lh, cy = top + h / 2;
     for (const ch of lines[i]) {
       const w = cells(ch) * g.cw;
       if (ch.zy) {
         // 注音格子：外框實線、中間虛線十字，不跟著字歪
-        const top = cy - g.lh / 2;
         x.save(); x.strokeStyle = '#7cbf5a'; x.globalAlpha = .8; x.lineWidth = 1;
-        x.strokeRect(cx + .5, top + .5, w - 1, g.lh - 1);
+        x.strokeRect(cx + .5, top + .5, w - 1, h - 1);
         x.setLineDash([2, 3]); x.beginPath();
-        x.moveTo(cx + w / 2, top); x.lineTo(cx + w / 2, top + g.lh);
+        x.moveTo(cx + w / 2, top); x.lineTo(cx + w / 2, top + h);
         x.moveTo(cx, cy); x.lineTo(cx + w, cy); x.stroke(); x.restore();
       }
       if (ch.c !== ' ') {
@@ -64,16 +64,20 @@ async function sheetCanvas(p, scale = 2) {
           : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
         if (ch.zy) {
           // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
-          const { syms, tone } = zyParts(ch), col = tone === '˙' ? ['˙', ...syms] : syms, step = g.lh * .3;
-          const side = tone && tone !== '˙';
-          x.font = `${step}px "Noto Serif TC", serif`;
+          const { syms, tone } = zyParts(ch), col = tone === '˙' ? ['˙', ...syms] : syms;
+          const size = g.lh * ZY_SIZE, step = size * .9;           // 行距 0.9，跟螢幕一樣
+          x.font = `${size}px "Noto Serif TC", serif`;
           col.forEach((c, k) => x.fillText(c, 0, (k - (col.length - 1) / 2) * step));
-          if (side) x.fillText(tone, step * .9, (syms.length - 2) / 2 * step);
+          if (tone && tone !== '˙') {
+            const ts = g.lh * ZY_TONE;
+            x.font = `${ts}px "Noto Serif TC", serif`; x.textAlign = 'left';
+            x.fillText(tone, size / 2 - ts * .2, (syms.length - 2) / 2 * step);
+          }
         } else x.fillText(glyph(ch), 0, 0);
         x.restore();
         if (ch.bad) {
           x.save(); x.strokeStyle = '#d42a24'; x.lineWidth = 2; x.globalAlpha = .9;
-          x.beginPath(); x.ellipse(cx + w / 2, cy, w * .58, g.lh * .44, -8 * Math.PI / 180, 0, Math.PI * 2); x.stroke(); x.restore();
+          x.beginPath(); x.ellipse(cx + w / 2, cy, w * .58, h * .44, -8 * Math.PI / 180, 0, Math.PI * 2); x.stroke(); x.restore();
         }
       }
       if (ch.score != null) {
@@ -90,7 +94,7 @@ async function sheetCanvas(p, scale = 2) {
   }
   return c;
 }
-const currentPage = () => Math.floor((lines.length - 1) / geo().rows);
+const currentPage = () => layoutRows().at(-1).page;
 const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
 function copyImage() {
   const p = currentPage();
@@ -111,7 +115,7 @@ async function savePdf() {
       sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
       sc.onload = ok; sc.onerror = no; document.head.appendChild(sc);
     });
-    const pages = Math.max(1, Math.ceil(lines.length / geo().rows));
+    const pages = pageCount();
     const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
     for (let p = 0; p < pages; p++) {
       if (p) pdf.addPage();
