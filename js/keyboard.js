@@ -85,7 +85,7 @@ function renderLegends() {
 // why：'auto' 是打字時偵測到輸入法改變而自動切換；'click' 是自己按的。兩種都提示一次
 const LAYOUT_TIP = {
   en: '打英文。電腦的輸入法請切到英文。',
-  zhuyin: '直接打注音符號，不會選成國字。電腦的輸入法是英文或注音都可以。',
+  zhuyin: '直接打注音符號，不會選成國字。標點按住 Shift：Shift＋逗點＝，　Shift＋句點＝。',
   ime: '用電腦的注音輸入法打字，選好的國字會打上紙。電腦的輸入法請切到注音。',
 };
 function setLayout(next, why) {
@@ -108,8 +108,9 @@ function zhuyinKey(e) {
   if (e.metaKey || e.ctrlKey || e.altKey || e.code === 'Tab') return false;
   if (e.target.closest?.('select, input')) return false;
   if (e.target.closest?.('button') && (e.code === 'Space' || e.code === 'Enter')) return false;
-  const sym = ZHUYIN[CODE2CHAR[e.code]];
-  if (e.code === 'Enter') enqueue('\n');
+  const c = CODE2CHAR[e.code], sym = ZHUYIN[c];
+  if (e.shiftKey && ZY_PUNCT[c]) enqueue(ZY_PUNCT[c]);
+  else if (e.code === 'Enter') enqueue('\n');
   else if (e.code === 'Backspace') backspace();
   else if (e.code === 'Space') enqueue(' ');
   else if (e.code === 'Escape') { $('picker').hidden = true; return false; }
@@ -127,6 +128,11 @@ keys.querySelectorAll('.key').forEach((k, i) => {
   k.style.setProperty('--sy', (40 + seeded(i + 57) * 50).toFixed(0) + '%');
   k.style.setProperty('--yellow', (0.08 + seeded(i + 83) * 0.42).toFixed(2));
 });
+function setShift(on) {
+  shift = on;
+  const b = keys.querySelector('[data-act="shift"]');
+  b.setAttribute('aria-pressed', on); b.classList.toggle('down', on);
+}
 keys.addEventListener('pointerdown', e => {
   const b = e.target.closest('.key'); if (!b) return;
   e.preventDefault();                        // 不讓按鈕搶走焦點、也不叫出系統鍵盤
@@ -141,11 +147,12 @@ keys.addEventListener('pointerdown', e => {
   if (act === 'space') enqueue(' ');
   else if (act === 'back') backspace();
   else if (act === 'ret') enqueue('\n');
-  else if (act === 'shift') { shift = !shift; b.setAttribute('aria-pressed', shift); b.classList.toggle('down', shift); }
+  else if (act === 'shift') setShift(!shift);
   else {
     const c = b.dataset.char;
-    // 注音鍵帽直接打出注音符號（小朋友先學注音）；要選成國字請用系統輸入法
-    if (layout !== 'en' && ZHUYIN[c]) enqueue(ZHUYIN[c]);
+    // 注音鍵帽直接打出注音符號（小朋友先學注音）；按「大寫」再按逗點、句點…打標點，打完自動放開
+    if (layout !== 'en' && shift && ZY_PUNCT[c]) { enqueue(ZY_PUNCT[c]); setShift(false); }
+    else if (layout !== 'en' && ZHUYIN[c]) enqueue(ZHUYIN[c]);
     else enqueue(shift ? c : c.toLowerCase());
   }
 });
