@@ -35,8 +35,9 @@ const keyEl = e => document.querySelector(`.key[data-code="${e.code}"]`);
 
 const coarse = matchMedia('(pointer: coarse)').matches;
 // 練習或 ㄅㄆㄇ 模式不讓輸入法接手（才能直接用按鍵位置對應注音）；國字模式在平板上也要叫出系統鍵盤
+// 剛按過的按鈕也要放掉焦點，不然 Enter／空白會變成再按一次按鈕，打不上紙
 const focusTyping = () => {
-  if (practice || layout === 'zhuyin') ime.blur();
+  if (practice || layout === 'zhuyin') { ime.blur(); document.activeElement?.closest?.('button')?.blur(); }
   else if (!coarse || layout === 'ime') ime.focus({ preventScroll: true });
 };
 win.addEventListener('click', () => { audio(); focusTyping(); });
