@@ -96,14 +96,12 @@ body {
   opacity: .8; -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .ch.zy i { font-style: normal; }
-.zy-ink { position: relative; display: inline-flex; align-items: center; }
-/* 輕聲不佔一列：放在第一個符號上方的空白，其他符號跟有聲調時同高度 */
-.zy-light { position: absolute; bottom: 100%; left: 50%; line-height: .5; transform: translate(-50%, .12em); }
-.zy-light.tight { transform: translate(-50%, .38em); }   /* 三個符號時上方空間少，貼近一點才不會壓到格子 */
-.zy-col { position: relative; display: flex; flex-direction: column; align-items: center; font-size: calc(var(--lh) * .68); line-height: .85; }
-/* 聲調標在最後一個符號的右上（跟課本一樣）：--k 依符號個數往上下移 */
-/* 注音那一欄對齊格子中線，聲調掛在右邊 */
-.zy-tone { position: absolute; left: 100%; top: 50%; font-size: calc(var(--lh) * .5); line-height: 1; margin-left: -.2em; transform: translateY(calc(-50% + var(--lh) * .68 * var(--ty, 0))); }
+/* 每個符號的位置由 zyLayout 算好（--y，以字高為單位、0 = 格子正中），跟圖片／PDF 用同一套數字
+   字高 = 行高 × .68（ZY_SIZE）；聲調字高 = 行高 × .5（ZY_TONE），掛在注音右邊；輕聲是圓點 */
+.zy-ink { position: absolute; left: 50%; top: 50%; width: 0; height: 0; font-size: calc(var(--lh) * .68); }
+.zy-ink i { position: absolute; left: 0; top: calc(var(--y) * 1em); transform: translate(-50%, -50%); line-height: 1; white-space: nowrap; }
+.zy-ink .zy-tone { font-size: calc(var(--lh) * .5); left: calc(var(--lh) * (.68 * .5 - .5 * .2)); top: calc(var(--y) * var(--lh) * .68); transform: translateY(-50%); }
+.zy-ink .zy-dot { width: .14em; height: .14em; border-radius: 50%; background: currentColor; }
 .pagebreak {
   position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d6d2c4;
   font: 11px var(--ui); color: #a39e8f; text-align: right; padding-right: 12px;

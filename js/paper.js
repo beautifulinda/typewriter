@@ -6,9 +6,12 @@ function charEl(ch) {
     const { syms, tone } = zyParts(ch);
     s.classList.add('zy'); s.setAttribute('aria-label', ch.c);
     // 墨色、歪斜只套在字上（.zy-ink），背後的格子保持端正
+    // 位置照 zyLayout 算（跟圖片／PDF 同一套數字），--y 是以字高為單位的上下位置
+    const z = zyLayout(syms, tone === '˙');
     s.innerHTML = `<span class="zy-ink" style="opacity:${ch.o};transform:translateY(${ch.y}px) rotate(${ch.r}deg)">`
-      + `<span class="zy-col">${tone === '˙' ? `<i class="zy-light${zyLayout(syms).cramped ? ' tight' : ''}">˙</i>` : ''}${syms.map((c, k) => `<i style="margin-top:${-zyTight(syms, k) * ZY_TIGHT}em">${c}</i>`).join('')}</span>`
-      + (tone && tone !== '˙' ? `<i class="zy-tone" style="--ty:${zyLayout(syms).toneY}">${tone}</i>` : '') + '</span>';
+      + syms.map((c, k) => `<i style="--y:${z.centers[k]}">${c}</i>`).join('')
+      + (tone === '˙' ? `<i class="zy-dot" style="--y:${z.dotY}"></i>` : '')
+      + (tone && tone !== '˙' ? `<i class="zy-tone" style="--y:${z.toneY}">${tone}</i>` : '') + '</span>';
     spanOf.set(ch, s); chOf.set(s, ch);
     return s;
   } else s.textContent = glyph(ch);

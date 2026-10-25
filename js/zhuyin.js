@@ -16,12 +16,21 @@ const ZY_SIZE = .68, ZY_TONE = .5;
 const ZY_LH = .85, ZY_TIGHT = .2;
 // 第 k 個符號要往上靠幾次（前一個是 ㄧ、自己是 ㄧ 各算一次）
 const zyTight = (syms, k) => k > 0 ? (syms[k] === 'ㄧ') + (syms[k - 1] === 'ㄧ') : 0;
-// 直排的位置（以字的大小為單位，0 = 整欄中間）：每個符號的中心、整欄高度、聲調的位置（最後一個符號的上緣）
-function zyLayout(syms) {
+// 輕聲是畫的圓點（字型裡的 ˙ 位置算不準）：半徑、跟第一個符號的距離、離格子上緣至少多遠
+const ZY_DOT = .07, ZY_DOT_GAP = .12, ZY_DOT_EDGE = .14;   // 用所有聲母×韻母組合實際量筆畫調出來的
+// 直排的位置，螢幕和圖片／PDF 共用（以字的大小為單位，0 = 格子正中，往下是正）：
+// 每個符號的中心、聲調的中心（最後一個符號的上緣）、輕聲圓點的中心
+function zyLayout(syms, light = false) {
   const tops = []; let y = 0;
   syms.forEach((c, k) => { y -= zyTight(syms, k) * ZY_TIGHT; tops.push(y); y += ZY_LH; });
-  // cramped：整欄太高、格子上方空間不夠放輕聲，輕聲要貼近第一個符號（例如 ㄏㄨㄚ˙）
-  return { centers: tops.map(t => t + ZY_LH / 2 - y / 2), height: y, toneY: tops[tops.length - 1] - y / 2, cramped: y > 2.25 };
+  let top = -y / 2, dotY = null;
+  if (light) {
+    // 輕聲不佔一列，放在第一個符號上方的空白；空白不夠（例如 ㄏㄨㄚ˙）整欄才往下挪剛好放得下的距離
+    const edge = -1 / ZY_SIZE + ZY_DOT_EDGE;        // 格子上緣（格子兩行高 = 2 / ZY_SIZE 個字高）
+    top += Math.max(0, edge - (top - ZY_DOT_GAP));
+    dotY = top - ZY_DOT_GAP;
+  }
+  return { centers: tops.map(t => top + t + ZY_LH / 2), toneY: top + tops[tops.length - 1], dotY };
 }
 // 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
 const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));

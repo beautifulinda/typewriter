@@ -64,10 +64,10 @@ async function sheetCanvas(p, scale = 2) {
           : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
         if (ch.zy) {
           // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
-          const { syms, tone } = zyParts(ch), z = zyLayout(syms), size = g.lh * ZY_SIZE;
+          const { syms, tone } = zyParts(ch), z = zyLayout(syms, tone === '˙'), size = g.lh * ZY_SIZE;
           x.font = `${size}px "Noto Serif TC", serif`;
           syms.forEach((c, k) => x.fillText(c, 0, z.centers[k] * size));
-          if (tone === '˙') x.fillText('˙', 0, (-z.height / 2 + (z.cramped ? .13 : -.13)) * size);   // 輕聲在第一個符號上方，不佔一列
+          if (z.dotY != null) { x.beginPath(); x.arc(0, z.dotY * size, ZY_DOT * size, 0, Math.PI * 2); x.fillStyle = '#23262d'; x.fill(); }
           if (tone && tone !== '˙') {
             const ts = g.lh * ZY_TONE;
             x.font = `${ts}px "Noto Serif TC", serif`; x.textAlign = 'left';
