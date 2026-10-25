@@ -120,5 +120,17 @@ paper.classList.toggle('bpmf', bpmf);
 if (bpmf) resolveAll();
 document.fonts?.ready.then(() => place(false));
 renderAll();
-addEventListener('resize', () => place(false));
+// 矮螢幕：機身和鍵盤等比例縮小，讓整台打字機放得進畫面（最小縮到 55%，再小就讓畫面捲動）
+const shellBody = document.querySelector('.body');
+function fitScreen() {
+  shellBody.style.zoom = 1;
+  const top = shellBody.getBoundingClientRect().top + scrollY;
+  const room = innerHeight - top - 34;                    // 底下留給狀態列
+  shellBody.style.zoom = Math.max(.55, Math.min(1, room / shellBody.offsetHeight)).toFixed(3);
+}
+addEventListener('resize', () => { fitScreen(); place(false); });
+// 工具列換行、練習卡打開或收起時，上面的高度會變
+new ResizeObserver(fitScreen).observe(document.querySelector('.bar'));
+new ResizeObserver(fitScreen).observe($('lesson'));
+fitScreen();
 focusTyping();

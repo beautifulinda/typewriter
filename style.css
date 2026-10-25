@@ -455,3 +455,27 @@ body {
   .paper, .paper.returning, .track, .track.returning { transition: none; }
   .strike.on, .typebar.on, .key.next .rim, .chip.bad, .key.shake { animation: none; }
 }
+/* 矮螢幕（解析度低的筆電）：工具列縮小、紙張視窗矮一點；機身和鍵盤由 main.js 的 fitScreen 等比例縮小 */
+@media (max-height: 820px) {
+  body { padding-block: 6px 12px; }
+  .bar { margin-bottom: 4px; gap: 4px 8px; }
+  .brand { font-size: 16px; }
+  .brand small { display: none; }
+  .tools { gap: 4px; }
+  .tool { font-size: 12px; padding: 3px 10px; min-height: 28px; }
+  .fullscreen { top: calc(6px + env(safe-area-inset-top, 0px)); width: 36px; height: 36px; }
+  .window { height: clamp(150px, 30vh, 380px); }
+  .status { margin-top: 10px; }
+  /* 練習卡也縮小；練習時上面已經有課文，紙張視窗再矮一點 */
+  .lesson { gap: 4px; margin-bottom: 6px; padding: 6px 12px; }
+  .lesson select { font-size: 13px; padding: 2px 8px; min-height: 30px; }
+  .lesson .tool { min-height: 28px; }
+  .tile { min-width: 38px; padding: 2px 4px; }
+  .tile b { font-size: 18px; }
+  .tile small { font-size: 10px; }
+  .now { min-height: 44px; gap: 6px 14px; }
+  .now-char b { font-size: 38px; }
+  .now-char span { font-size: 20px; }
+  .chip { height: 38px; min-width: 38px; font-size: 18px; }
+  .machine:has(.lesson:not([hidden])) .window { height: clamp(120px, 24vh, 380px); }
+}
