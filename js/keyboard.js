@@ -4,14 +4,14 @@ const preedit = $('preedit');
 ime.addEventListener('compositionstart', () => { composing = true; });
 ime.addEventListener('compositionupdate', e => {
   const d = e.data || '';
-  if (/[㄀-ㄯ]/.test(d)) setLayout('zhuyin', true);   // 拼出來的是ㄅㄆㄇ：電腦現在是注音輸入法
+  if (/[㄀-ㄯ]/.test(d) && layout === 'en') setLayout('ime', 'auto');   // 拼出來的是ㄅㄆㄇ：電腦現在是注音輸入法
   preedit.textContent = d; preedit.hidden = !d;
   if (d) sounds.back();
 });
 ime.addEventListener('compositionend', e => { composing = false; preedit.hidden = true; enqueue(e.data || ''); ime.value = ''; });
 ime.addEventListener('input', e => {
   if (composing || e.isComposing) return;
-  if (e.inputType === 'insertText' && /[a-z]/i.test(ime.value)) setLayout('en', true);  // 沒經過選字就打出英文：電腦是英文輸入法
+  if (e.inputType === 'insertText' && /[a-z]/i.test(ime.value) && layout === 'ime') setLayout('en', 'auto');  // 沒經過選字就打出英文：電腦是英文輸入法
   if (e.inputType === 'insertText' || e.inputType === 'insertFromPaste' || e.inputType === 'insertReplacementText') enqueue(ime.value);
   ime.value = '';
 });
@@ -23,6 +23,7 @@ ime.addEventListener('keydown', e => {
 });
 document.addEventListener('keydown', e => {
   if (practice && practiceKey(e)) { keyEl(e)?.classList.add('down'); return; }
+  if (!practice && layout === 'zhuyin' && zhuyinKey(e)) { keyEl(e)?.classList.add('down'); return; }
   if (e.target !== ime && !e.target.closest?.('button')) {
     if (e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace') ime.focus();
   }
@@ -33,8 +34,11 @@ document.addEventListener('keyup', e => keyEl(e)?.classList.remove('down'));
 const keyEl = e => document.querySelector(`.key[data-code="${e.code}"]`);
 
 const coarse = matchMedia('(pointer: coarse)').matches;
-// 練習時不讓輸入法接手（才能直接用按鍵位置對應注音）
-const focusTyping = () => { if (practice) ime.blur(); else if (!coarse) ime.focus({ preventScroll: true }); };
+// 練習或 ㄅㄆㄇ 模式不讓輸入法接手（才能直接用按鍵位置對應注音）；國字模式在平板上也要叫出系統鍵盤
+const focusTyping = () => {
+  if (practice || layout === 'zhuyin') ime.blur();
+  else if (!coarse || layout === 'ime') ime.focus({ preventScroll: true });
+};
 win.addEventListener('click', () => { audio(); focusTyping(); });
 
 // ---------- 畫面上的圓鍵（平板、手機） ----------
@@ -71,19 +75,48 @@ function renderLegends() {
     sub.textContent = zyMain ? c : zy; sub.classList.toggle('zy', !zyMain);
     k.setAttribute('aria-label', zyMain ? `${zy}（${c}）` : c);
   });
-  $('layout').textContent = layout === 'zhuyin' ? '鍵帽 ㄅㄆㄇ' : '鍵帽 ABC';
-  $('layout').setAttribute('aria-pressed', layout === 'zhuyin');
+  document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', b.dataset.layout === layout));
 }
-// auto：打字時偵測到輸入法改變而自動切換，提示一次
-function setLayout(next, auto = false) {
+// 輸入有三種：
+//   en     ABC：照電腦的輸入法打
+//   zhuyin ㄅㄆㄇ：直接打注音符號，不選字。實體鍵盤看按鍵位置對應注音，不經過電腦的輸入法
+//   ime    國字：用電腦的注音輸入法選字
+// why：'auto' 是打字時偵測到輸入法改變而自動切換；'click' 是自己按的。兩種都提示一次
+const LAYOUT_TIP = {
+  en: '打英文。電腦的輸入法請切到英文。',
+  zhuyin: '直接打注音符號，不會選成國字。電腦的輸入法是英文或注音都可以。',
+  ime: '用電腦的注音輸入法打字，選好的國字會打上紙。電腦的輸入法請切到注音。',
+};
+function setLayout(next, why) {
   if (next === layout) return;
   layout = next; renderLegends();
   try { localStorage.setItem('typewriter:layout', layout); } catch {}
-  if (auto) toast(layout === 'zhuyin' ? '偵測到注音輸入法，鍵帽換成 ㄅㄆㄇㄈ。' : '偵測到英文輸入，鍵帽換回 ABC。');
+  if (why === 'auto') toast(layout === 'ime' ? '偵測到注音輸入法，換成「國字」。想直接打注音符號請按「ㄅㄆㄇ」。' : '偵測到英文輸入，換成「ABC」。');
+  else if (why === 'click') toast(LAYOUT_TIP[layout]);
 }
-$('layout').onclick = () => { setLayout(layout === 'zhuyin' ? 'en' : 'zhuyin'); focusTyping(); };
-try { if (localStorage.getItem('typewriter:layout') === 'zhuyin') layout = 'zhuyin'; } catch {}
+document.querySelectorAll('[data-layout]').forEach(b => {
+  b.onclick = () => { setLayout(b.dataset.layout, 'click'); audio(); focusTyping(); };
+});
+try { const saved = localStorage.getItem('typewriter:layout'); if (saved in LAYOUT_TIP) layout = saved; } catch {}
 renderLegends();
+// 實體鍵盤的按鍵位置 → 鍵帽上的字（e.code → 'Q'）
+const CODE2CHAR = {};
+keys.querySelectorAll('.key[data-char]').forEach(k => { CODE2CHAR[k.dataset.code] = k.dataset.char; });
+// ㄅㄆㄇ 模式：實體鍵盤直接打出注音符號
+function zhuyinKey(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.code === 'Tab') return false;
+  if (e.target.closest?.('select, input')) return false;
+  if (e.target.closest?.('button') && (e.code === 'Space' || e.code === 'Enter')) return false;
+  const sym = ZHUYIN[CODE2CHAR[e.code]];
+  if (e.code === 'Enter') enqueue('\n');
+  else if (e.code === 'Backspace') backspace();
+  else if (e.code === 'Space') enqueue(' ');
+  else if (e.code === 'Escape') { $('picker').hidden = true; return false; }
+  else if (sym) enqueue(sym);
+  else return false;
+  e.preventDefault();
+  return true;
+}
 
 // 每顆鍵舊得不一樣：用位置當種子，重新整理頁面也不會變
 const seeded = n => { const x = Math.sin(n * 99.13 + 7.7) * 43758.5453; return x - Math.floor(x); };
@@ -111,7 +144,7 @@ keys.addEventListener('pointerdown', e => {
   else {
     const c = b.dataset.char;
     // 注音鍵帽直接打出注音符號（小朋友先學注音）；要選成國字請用系統輸入法
-    if (layout === 'zhuyin' && ZHUYIN[c]) enqueue(ZHUYIN[c]);
+    if (layout !== 'en' && ZHUYIN[c]) enqueue(ZHUYIN[c]);
     else enqueue(shift ? c : c.toLowerCase());
   }
 });

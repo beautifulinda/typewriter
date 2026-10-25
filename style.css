@@ -49,6 +49,12 @@ body {
 }
 .tool[aria-pressed="true"] { background: var(--enamel); border-color: var(--enamel); color: var(--cap); }
 .tool:hover { border-color: var(--legend); }
+/* 輸入切換：三顆按鈕接在一起 */
+.seg { display: inline-flex; }
+.seg .tool { border-radius: 0; margin-left: -1.5px; }
+.seg .tool:first-child { border-radius: 999px 0 0 999px; margin-left: 0; }
+.seg .tool:last-child { border-radius: 0 999px 999px 0; }
+.seg .tool[aria-pressed="true"] { position: relative; z-index: 1; }
 .tool:focus-visible, .key:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; }
 
 /* 紙張視窗 */

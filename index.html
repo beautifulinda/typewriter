@@ -17,10 +17,11 @@
       <button class="tool" id="big" aria-pressed="false">大字</button>
       <button class="tool" id="sound" aria-pressed="true">聲音 開</button>
       <button class="tool" id="shell">機身 黑</button>
-      <button class="tool" id="layout" aria-pressed="false">鍵帽 ABC</button>
+      <span class="seg" role="group" aria-label="輸入">
+        <button class="tool" data-layout="en" aria-pressed="true">ABC</button><button class="tool" data-layout="zhuyin" aria-pressed="false">ㄅㄆㄇ</button><button class="tool" data-layout="ime" aria-pressed="false">國字</button>
+      </span>
       <button class="tool" id="bpmf" aria-pressed="false">注音字</button>
       <button class="tool" id="practice-btn" aria-pressed="false">練習</button>
-      <button class="tool" id="ime-btn">注音／系統鍵盤</button>
       <button class="tool" id="fresh">換新紙</button>
       <button class="tool" id="print-btn">列印／存檔</button>
     </div>
@@ -62,7 +63,7 @@
   </div>
   </div>
     <div class="status"><span id="pos">第 1 頁 · 第 1 行 · 第 1 格</span><span id="count">0 字</span></div>
-    <div class="hint">直接用實體鍵盤打字；平板、手機可以點上面的圓鍵。<br>要打中文請按「注音／系統鍵盤」。<kbd>Enter</kbd> 換行會「叮」一聲，快到右邊邊界也會叮。<br>打開「注音字」後，底下有紅線的是破音字，點一下可以換讀音。注音字型與破音詞庫來自開源專案 bpmfvs（ButTaiwan）。</div>
+    <div class="hint">直接用實體鍵盤打字；平板、手機可以點上面的圓鍵。<br>輸入有三種：「ABC」打英文；「ㄅㄆㄇ」直接打注音符號，不會選成國字；「國字」用電腦的注音輸入法選字。<kbd>Enter</kbd> 換行會「叮」一聲，快到右邊邊界也會叮。<br>打開「注音字」後，底下有紅線的是破音字，點一下可以換讀音。注音字型與破音詞庫來自開源專案 bpmfvs（ButTaiwan）。</div>
 </div>
 
 <div class="picker" id="picker" role="dialog" aria-label="選讀音" hidden></div>

@@ -51,7 +51,6 @@ $('shell').onclick = () => {
   try { localStorage.setItem('typewriter:shell', s); } catch {}
   focusTyping();
 };
-$('ime-btn').onclick =() => { ime.focus(); audio(); toast('切換到注音輸入法就可以打中文，選好字會一個一個打上去。'); };
 $('fresh').onclick = () => toast('要換一張新紙嗎？現在這張會清掉。', [
   ['換新紙', () => { lines = [[]]; pageDates = []; renderAll(); save(); sounds.ret(); }, 'danger'], ['先不要'],
 ]);

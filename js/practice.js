@@ -1,7 +1,5 @@
 // ---------- 練習模式：結合韻與小文章，跟著提示一個鍵一個鍵打注音 ----------
 const TONE_TIP = { ' ': '一聲：按空白鍵', 'ˊ': '二聲：按 6', 'ˇ': '三聲：按 3', 'ˋ': '四聲：按 4', '˙': '輕聲：按 7' };
-const CODE2CHAR = {};
-keys.querySelectorAll('.key[data-char]').forEach(k => { CODE2CHAR[k.dataset.code] = k.dataset.char; });
 const charOfSym = sym => Object.keys(ZHUYIN).find(c => ZHUYIN[c] === sym);
 const keyOfSym = sym => sym === ' ' ? keys.querySelector('[data-act="space"]') : keys.querySelector(`.key[data-char="${CSS.escape(charOfSym(sym) || '')}"]`);
 // 注音拆成要按的鍵：聲母韻母照順序，最後是聲調（一聲按空白）
