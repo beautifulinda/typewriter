@@ -47,6 +47,15 @@ async function sheetCanvas(p, scale = 2) {
     const cy = MARGIN + (i - from) * g.lh + g.lh / 2;
     for (const ch of lines[i]) {
       const w = cells(ch) * g.cw;
+      if (ch.zy) {
+        // 注音格子：外框實線、中間虛線十字，不跟著字歪
+        const top = cy - g.lh / 2;
+        x.save(); x.strokeStyle = '#7cbf5a'; x.globalAlpha = .8; x.lineWidth = 1;
+        x.strokeRect(cx + .5, top + .5, w - 1, g.lh - 1);
+        x.setLineDash([2, 3]); x.beginPath();
+        x.moveTo(cx + w / 2, top); x.lineTo(cx + w / 2, top + g.lh);
+        x.moveTo(cx, cy); x.lineTo(cx + w, cy); x.stroke(); x.restore();
+      }
       if (ch.c !== ' ') {
         x.save(); x.globalAlpha = ch.o;
         x.translate(cx + w / 2, cy + ch.y); x.rotate(ch.r * Math.PI / 180);
@@ -55,12 +64,11 @@ async function sheetCanvas(p, scale = 2) {
           : `${g.fs}px "Special Elite", "Noto Serif TC", monospace`;
         if (ch.zy) {
           // 直式注音：跟螢幕一樣由上往下疊，聲調在右邊
-          const { syms, tone } = zyParts(ch), col = tone === '˙' ? ['˙', ...syms] : syms, step = g.fs * .6;
+          const { syms, tone } = zyParts(ch), col = tone === '˙' ? ['˙', ...syms] : syms, step = g.lh * .3;
           const side = tone && tone !== '˙';
           x.font = `${step}px "Noto Serif TC", serif`;
-          const ox = side ? -step * .3 : 0;
-          col.forEach((c, k) => x.fillText(c, ox, (k - (col.length - 1) / 2) * step));
-          if (side) x.fillText(tone, ox + step * .85, (syms.length - 2) / 2 * step);
+          col.forEach((c, k) => x.fillText(c, 0, (k - (col.length - 1) / 2) * step));
+          if (side) x.fillText(tone, step * .9, (syms.length - 2) / 2 * step);
         } else x.fillText(glyph(ch), 0, 0);
         x.restore();
         if (ch.bad) {

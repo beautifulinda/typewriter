@@ -12,6 +12,7 @@
   --ink: #23262d;
   --ribbon: #c4372c;
   --pen: #d42a24;      /* 老師的紅筆 */
+  --grid: #7cbf5a;     /* 注音練習簿的綠格子 */
   --muted: #b8aea6;
   --type: "Special Elite", "Noto Serif TC", "Courier New", monospace;
   --cjk: "Noto Serif TC", "PingFang TC", "Heiti TC", serif;
@@ -81,12 +82,22 @@ body {
 .ch.wide { width: calc(var(--cw) * 2); font-family: var(--cjk); font-size: calc(var(--fs) * .92); }
 /* 注音字：字和注音冷在一起的開源字型（字咳注音楷體），一個字寬 1.5 個字高，所以佔 3 格 */
 .bpmf .ch.wide { width: calc(var(--cw) * 3); font-family: "Bpmf Zihi Kai Std", var(--cjk); font-size: calc(var(--fs) * 1.15); }
-/* 直式注音音節：符號由上往下疊，聲調在右邊（三個符號會比行高稍微高一點） */
-.ch.zy { display: inline-flex; justify-content: center; align-items: center; height: var(--lh); font-family: var(--cjk); }
+/* 直式注音音節：像注音練習簿，一個音節一個綠格子（中間虛線十字），注音寫在格子正中；上下行的格子接在一起
+   符號由上往下疊，聲調在右邊；三個符號剛好放進一行高 */
+.ch.zy { position: relative; display: inline-flex; justify-content: center; align-items: center; height: var(--lh); font-family: var(--cjk); }
+.ch.zy::before {
+  content: ""; position: absolute; inset: 0; border: 1px solid var(--grid); pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, var(--grid) 0 2px, transparent 2px 5px) center / 1px 100% no-repeat,
+    repeating-linear-gradient(to right, var(--grid) 0 2px, transparent 2px 5px) center / 100% 1px no-repeat;
+  opacity: .8; -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
 .ch.zy i { font-style: normal; }
-.zy-col { display: flex; flex-direction: column; align-items: center; font-size: calc(var(--fs) * .6); line-height: 1; }
+.zy-ink { position: relative; display: inline-flex; align-items: center; }
+.zy-col { display: flex; flex-direction: column; align-items: center; font-size: calc(var(--lh) * .3); line-height: 1; }
 /* 聲調標在最後一個符號的右上（跟課本一樣）：--k 依符號個數往上下移 */
-.zy-tone { font-size: calc(var(--fs) * .6); line-height: 1; margin-left: .05em; transform: translateY(calc(var(--fs) * .6 * var(--k, 0))); }
+/* 注音那一欄對齊格子中線，聲調掛在右邊 */
+.zy-tone { position: absolute; left: 100%; top: 50%; font-size: calc(var(--lh) * .3); line-height: 1; margin-left: .05em; transform: translateY(calc(-50% + var(--lh) * .3 * var(--k, 0))); }
 .pagebreak {
   position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #d6d2c4;
   font: 11px var(--ui); color: #a39e8f; text-align: right; padding-right: 12px;
