@@ -134,6 +134,15 @@ test('ㄅㄆㄇ 鍵盤', 'Shift 打全形標點，沒按 Shift 是注音', async
   await idle();
   eq(lastLine(), ['，', 'ㄝ', '。', 'ㄡ', '？', 'ㄥ', '！', '：']);
 });
+test('ㄅㄆㄇ 鍵盤', '按到沒有注音的鍵，輸入框也不拿焦點；電腦輸入法送出的字不打上紙', async () => {
+  reset();
+  for (const [code, key] of [['BracketLeft', '['], ['Equal', '='], ['Quote', "'"], ['Backquote', '`']]) {
+    press(code, { key }); ok(document.activeElement !== ime, `按 ${key} 後輸入框拿到焦點`);
+  }
+  ime.focus(); ok(document.activeElement !== ime, '輸入框不能拿到焦點');
+  ime.dispatchEvent(new CompositionEvent('compositionend', { data: '我們今天去公園玩' }));
+  await idle(); eq(lastLine(), []);
+});
 test('ㄅㄆㄇ 鍵盤', 'Enter 換行、Backspace 退格', async () => {
   reset(); press('Digit1'); press('Enter'); press('Digit8'); await idle();
   eq(text(), [['ㄅ'], ['ㄚ']]);

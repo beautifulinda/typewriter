@@ -1,6 +1,9 @@
 // ---------- 實體鍵盤與注音輸入 ----------
 let composing = false;
 const preedit = $('preedit');
+// 練習與 ㄅㄆㄇ 模式看按鍵位置打注音，輸入框不能拿到焦點：不然電腦的輸入法會同時在裡面拼字，送出時一次打上一大串
+const imeOff = () => practice || layout === 'zhuyin';
+ime.addEventListener('focus', () => { if (imeOff()) ime.blur(); });
 ime.addEventListener('compositionstart', () => { composing = true; });
 ime.addEventListener('compositionupdate', e => {
   const d = e.data || '';
@@ -8,9 +11,10 @@ ime.addEventListener('compositionupdate', e => {
   preedit.textContent = d; preedit.hidden = !d;
   if (d) sounds.back();
 });
-ime.addEventListener('compositionend', e => { composing = false; preedit.hidden = true; enqueue(e.data || ''); ime.value = ''; });
+ime.addEventListener('compositionend', e => { composing = false; preedit.hidden = true; if (!imeOff()) enqueue(e.data || ''); ime.value = ''; });
 ime.addEventListener('input', e => {
   if (composing || e.isComposing) return;
+  if (imeOff()) { ime.value = ''; return; }
   if (e.inputType === 'insertText' && /[a-z]/i.test(ime.value) && layout === 'ime') setLayout('en', 'auto');  // 沒經過選字就打出英文：電腦是英文輸入法
   if (e.inputType === 'insertText' || e.inputType === 'insertFromPaste' || e.inputType === 'insertReplacementText') enqueue(ime.value);
   ime.value = '';
@@ -24,7 +28,7 @@ ime.addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
   if (practice && practiceKey(e)) { keyEl(e)?.classList.add('down'); return; }
   if (!practice && layout === 'zhuyin' && zhuyinKey(e)) { keyEl(e)?.classList.add('down'); return; }
-  if (e.target !== ime && !e.target.closest?.('button')) {
+  if (!imeOff() && e.target !== ime && !e.target.closest?.('button')) {
     if (e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace') ime.focus();
   }
   if (e.key === 'Escape') $('picker').hidden = true;
