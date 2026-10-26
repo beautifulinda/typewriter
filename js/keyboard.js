@@ -30,8 +30,17 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') $('picker').hidden = true;
   keyEl(e)?.classList.add('down');
 });
-document.addEventListener('keyup', e => keyEl(e)?.classList.remove('down'));
+document.addEventListener('keyup', e => {
+  if (e.key === 'Meta') releaseKeys();                  // Mac 按住 Command 時，其他鍵放開不會送 keyup
+  else if (!(e.key === 'Shift' && shift)) keyEl(e)?.classList.remove('down');   // 畫面上的「大寫」按著時不跟著彈起
+});
 const keyEl = e => document.querySelector(`.key[data-code="${e.code}"]`);
+// 收不到 keyup 的時候（切到別的視窗、跳出聽寫、切換全螢幕），鍵帽全部彈回來，不然會一直壓著
+const releaseKeys = () => keys.querySelectorAll('.key.down').forEach(k => { if (!(k.dataset.act === 'shift' && shift)) k.classList.remove('down'); });
+addEventListener('blur', () => releaseKeys());
+document.addEventListener('visibilitychange', () => releaseKeys());
+document.addEventListener('fullscreenchange', () => releaseKeys());
+document.addEventListener('webkitfullscreenchange', () => releaseKeys());
 
 const coarse = matchMedia('(pointer: coarse)').matches;
 // 練習或 ㄅㄆㄇ 模式不讓輸入法接手（才能直接用按鍵位置對應注音）；國字模式在平板上也要叫出系統鍵盤

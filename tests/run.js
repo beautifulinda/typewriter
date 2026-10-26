@@ -148,6 +148,18 @@ test('ㄅㄆㄇ 鍵盤', '點完「ㄅㄆㄇ」按鈕後，焦點不會留在按
   press('Enter', { target: document.activeElement || document.body }); await idle();
   eq(lines.length, 2, '行數：');
 });
+test('ㄅㄆㄇ 鍵盤', '收不到放開（按住 Command、切走視窗）時鍵帽會彈回來，按著的「大寫」不彈', async () => {
+  reset(); setShift(true);
+  const a = $('keys').querySelector('[data-code="KeyA"]'), s = $('keys').querySelector('[data-act="shift"]');
+  press('KeyA', { key: 'a' }); ok(a.classList.contains('down'), 'A 要壓下去');
+  document.dispatchEvent(new KeyboardEvent('keyup', { code: 'MetaLeft', key: 'Meta', bubbles: true }));
+  ok(!a.classList.contains('down'), '放開 Command 後 A 要彈回來');
+  press('KeyA', { key: 'a' }); dispatchEvent(new Event('blur'));
+  ok(!a.classList.contains('down'), '視窗失去焦點後 A 要彈回來');
+  document.dispatchEvent(new KeyboardEvent('keyup', { code: 'ShiftLeft', key: 'Shift', bubbles: true }));
+  ok(s.classList.contains('down'), '「大寫」按著時不彈起');
+  setShift(false); await idle();
+});
 test('ㄅㄆㄇ 鍵盤', '畫面圓鍵：按「大寫」再按句點打出「。」，大寫自動放開', async () => {
   reset(); tap('[data-act="shift"]'); tap('[data-char="."]'); tap('[data-char="."]'); await idle();
   eq(lastLine(), ['。', 'ㄡ']); eq(shift, false, '大寫：');
