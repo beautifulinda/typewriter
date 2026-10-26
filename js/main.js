@@ -99,6 +99,7 @@ if (root.requestFullscreen || root.webkitRequestFullscreen) {
   const sync = () => {
     const on = !!fsElement();
     lockKeys(on); releaseKeys();
+    toast(!on ? '已離開全螢幕。' : `已進入全螢幕，打字以外的按鍵不會亂跳。要離開：${canLock ? '按住 Esc 兩秒' : '按 Esc'}，或按右上角的按鈕。`);
     fsBtn.classList.toggle('on', on);
     fsBtn.setAttribute('aria-label', on ? '離開全螢幕' : '全螢幕'); fsBtn.title = on ? '離開全螢幕' : '全螢幕';
     setTimeout(() => place(false), 50);
@@ -113,10 +114,8 @@ const LOCK_KEYS = ['Escape', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu', ...A
 const canLock = !!navigator.keyboard?.lock;
 function lockKeys(on) {
   if (!canLock) return;
-  if (on) {
-    navigator.keyboard.lock(LOCK_KEYS).catch(() => {});
-    toast('要離開全螢幕：按住 Esc 兩秒，或按右上角的按鈕。');
-  } else navigator.keyboard.unlock();
+  if (on) navigator.keyboard.lock(LOCK_KEYS).catch(() => {});
+  else navigator.keyboard.unlock();
 }
 const STRAY_CODE = /^(F\d+|(Browser|Audio|Media|Launch)\w*|Help|ContextMenu|Power|Sleep|WakeUp)$/;   // 功能鍵、瀏覽器／音量／媒體鍵
 const strayKey = e => STRAY_CODE.test(e.code)
