@@ -109,7 +109,7 @@ if (root.requestFullscreen || root.webkitRequestFullscreen) {
 // 全螢幕時擋掉打字以外的按鍵，免得按到功能鍵、快捷鍵跳出別的東西
 // Chrome／Edge 支援 Keyboard Lock：連系統快捷鍵（Command、Windows 鍵、Alt＋Tab）也收進網頁，Esc 要按住才離開全螢幕
 // 電腦自己處理的鍵（Mac 的地球鍵、麥克風鍵、亮度音量）網頁收不到，要到系統設定關
-const LOCK_KEYS = ['Escape', 'Tab', 'MetaLeft', 'MetaRight', ...Array.from({ length: 12 }, (_, i) => 'F' + (i + 1))];
+const LOCK_KEYS = ['Escape', 'Tab', 'MetaLeft', 'MetaRight', 'ContextMenu', ...Array.from({ length: 12 }, (_, i) => 'F' + (i + 1))];
 const canLock = !!navigator.keyboard?.lock;
 function lockKeys(on) {
   if (!canLock) return;
@@ -124,6 +124,8 @@ const strayKey = e =>
 addEventListener('keydown', e => {
   if (fsElement() && strayKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, true);
+// 選單鍵、滑鼠右鍵、觸控板雙指點按跳出的選單（Windows 的選單鍵是放開時才跳，擋 keydown 不夠）
+addEventListener('contextmenu', e => { if (fsElement()) e.preventDefault(); }, true);
 addEventListener('beforeunload', e => { if (fsElement()) e.preventDefault(); });   // 不小心按到關分頁、重新整理時先問一聲
 
 // ---------- 開始：有草稿就接著打，沒有就放一張範例紙 ----------
