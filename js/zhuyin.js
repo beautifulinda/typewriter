@@ -36,8 +36,34 @@ function zyLayout(syms, light = false) {
   }
   return { centers: tops.map(t => top + t + ZY_LH / 2), toneY: top + tops[tops.length - 1] + ZY_TONE_DROP, dotY };
 }
-// 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序；打了聲調（或空白當一聲）就結束
-const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART));
+// 國語有的音節（不含聲調）：每個聲母後面列能接的韻母，'-' 是聲母單獨成音（ㄓ、ㄗ…）
+// 拼不出來的組合（ㄗㄧ、ㄧㄟ、ㄅㄨㄛ、ㄐㄨ、ㄈㄧ…）不併成一格
+const ZY_BPM = 'ㄚ ㄛ ㄞ ㄟ ㄠ ㄢ ㄣ ㄤ ㄥ ㄧ ㄧㄝ ㄧㄠ ㄧㄢ ㄧㄣ ㄧㄥ ㄨ';
+const ZY_GKH = 'ㄚ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄚ ㄨㄛ ㄨㄞ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄤ ㄨㄥ';
+const ZY_JQX = 'ㄧ ㄧㄚ ㄧㄝ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄣ ㄧㄤ ㄧㄥ ㄩ ㄩㄝ ㄩㄢ ㄩㄣ ㄩㄥ';
+const ZY_ZCS = '- ㄚ ㄜ ㄞ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄛ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄥ';
+const ZY_SYLLABLES = {
+  '': 'ㄚ ㄛ ㄜ ㄝ ㄞ ㄟ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄦ ㄧ ㄧㄚ ㄧㄛ ㄧㄝ ㄧㄞ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄣ ㄧㄤ ㄧㄥ ㄨ ㄨㄚ ㄨㄛ ㄨㄞ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄤ ㄨㄥ ㄩ ㄩㄝ ㄩㄢ ㄩㄣ ㄩㄥ',
+  ㄅ: ZY_BPM, ㄆ: ZY_BPM + ' ㄡ', ㄇ: ZY_BPM + ' ㄜ ㄡ ㄧㄡ', ㄈ: 'ㄚ ㄛ ㄟ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ',
+  ㄉ: 'ㄚ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄧ ㄧㄚ ㄧㄝ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄤ ㄧㄥ ㄨ ㄨㄛ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄥ',
+  ㄊ: 'ㄚ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄤ ㄥ ㄧ ㄧㄝ ㄧㄠ ㄧㄢ ㄧㄥ ㄨ ㄨㄛ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄥ',
+  ㄋ: 'ㄚ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄧ ㄧㄚ ㄧㄝ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄣ ㄧㄤ ㄧㄥ ㄨ ㄨㄛ ㄨㄢ ㄨㄣ ㄨㄥ ㄩ ㄩㄝ',
+  ㄌ: 'ㄚ ㄛ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄤ ㄥ ㄧ ㄧㄚ ㄧㄝ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄣ ㄧㄤ ㄧㄥ ㄨ ㄨㄛ ㄨㄢ ㄨㄣ ㄨㄥ ㄩ ㄩㄝ ㄩㄢ',
+  ㄍ: ZY_GKH, ㄎ: ZY_GKH, ㄏ: ZY_GKH,
+  ㄐ: ZY_JQX, ㄑ: ZY_JQX, ㄒ: ZY_JQX,
+  ㄓ: '- ' + ZY_GKH, ㄔ: '- ' + ZY_GKH.replace(' ㄟ', ''), ㄕ: '- ' + ZY_GKH.replace(' ㄨㄥ', ''),
+  ㄖ: '- ㄜ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄛ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄥ',
+  ㄗ: ZY_ZCS + ' ㄟ', ㄘ: ZY_ZCS, ㄙ: ZY_ZCS,
+};
+// 拼到一半也要接得上：存所有音節的開頭（ㄉ、ㄉㄨ、ㄉㄨㄛ…）
+const ZY_PREFIX = new Set();
+for (const [i, fs] of Object.entries(ZY_SYLLABLES)) for (const f of fs.split(' ')) {
+  const s = [...i + (f === '-' ? '' : f)];
+  s.forEach((_, k) => ZY_PREFIX.add(s.slice(0, k + 1).join('')));
+}
+// 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序、拼得出國語有的音節；打了聲調（或空白當一聲）就結束
+const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART))
+  && (ZY_PART(c) === 3 || ZY_PREFIX.has(ch.c + c));
 function zyParts(ch) {
   const s = [...ch.c];
   return { syms: s.filter(c => ZY_PART(c) < 3), tone: s.find(c => ZY_PART(c) === 3) || '' };
