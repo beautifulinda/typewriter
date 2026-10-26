@@ -98,6 +98,7 @@ if (root.requestFullscreen || root.webkitRequestFullscreen) {
   };
   const sync = () => {
     const on = !!fsElement();
+    lockKeys(on);
     fsBtn.classList.toggle('on', on);
     fsBtn.setAttribute('aria-label', on ? '離開全螢幕' : '全螢幕'); fsBtn.title = on ? '離開全螢幕' : '全螢幕';
     setTimeout(() => place(false), 50);
@@ -105,6 +106,25 @@ if (root.requestFullscreen || root.webkitRequestFullscreen) {
   document.addEventListener('fullscreenchange', sync);
   document.addEventListener('webkitfullscreenchange', sync);
 }
+// 全螢幕時擋掉打字以外的按鍵，免得按到功能鍵、快捷鍵跳出別的東西
+// Chrome／Edge 支援 Keyboard Lock：連系統快捷鍵（Command、Windows 鍵、Alt＋Tab）也收進網頁，Esc 要按住才離開全螢幕
+// 電腦自己處理的鍵（Mac 的地球鍵、麥克風鍵、亮度音量）網頁收不到，要到系統設定關
+const LOCK_KEYS = ['Escape', 'Tab', 'MetaLeft', 'MetaRight', ...Array.from({ length: 12 }, (_, i) => 'F' + (i + 1))];
+const canLock = !!navigator.keyboard?.lock;
+function lockKeys(on) {
+  if (!canLock) return;
+  if (on) {
+    navigator.keyboard.lock(LOCK_KEYS).catch(() => {});
+    toast('要離開全螢幕：按住 Esc 兩秒，或按右上角的按鈕。');
+  } else navigator.keyboard.unlock();
+}
+const strayKey = e =>
+  /^F\d+$/.test(e.code) || /^(Browser|Audio|Media|Launch)|^(Help|ContextMenu|Power|Sleep|WakeUp)$/.test(e.code)
+  || e.metaKey || (e.ctrlKey && e.code !== 'Space');                   // Ctrl＋空白 是切換輸入法，留給電腦
+addEventListener('keydown', e => {
+  if (fsElement() && strayKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
+}, true);
+addEventListener('beforeunload', e => { if (fsElement()) e.preventDefault(); });   // 不小心按到關分頁、重新整理時先問一聲
 
 // ---------- 開始：有草稿就接著打，沒有就放一張範例紙 ----------
 try {

@@ -76,6 +76,13 @@ test('純邏輯', '練習判分', () => {
   ok(wordRight(want, want), '全對'); ok(!wordRight(['ㄆ', 'ㄚ', 'ˋ'], want), '有錯');
   eq(lessonScore([true, true, false, true]), 75);
 });
+test('純邏輯', '全螢幕時擋掉的鍵：功能鍵、快捷鍵；打字的鍵照常', () => {
+  const k = (code, mods = {}) => strayKey({ code, metaKey: false, ctrlKey: false, ...mods });
+  ['F1', 'F5', 'F11', 'AudioVolumeUp', 'MediaPlayPause', 'LaunchApp1', 'BrowserBack', 'ContextMenu'].forEach(c => ok(k(c), `${c} 要擋`));
+  ok(k('KeyR', { metaKey: true }), 'Command＋R 要擋'); ok(k('KeyW', { ctrlKey: true }), 'Ctrl＋W 要擋');
+  ['KeyA', 'Digit1', 'Space', 'Enter', 'Backspace', 'Comma', 'ShiftLeft', 'CapsLock'].forEach(c => ok(!k(c), `${c} 不擋`));
+  ok(!k('Space', { ctrlKey: true }), 'Ctrl＋空白（切換輸入法）不擋');
+});
 
 // ---------- 注音合併成音節 ----------
 test('注音音節', 'ㄅㄚˋ 合成一格，打了聲調就結束', () => {
