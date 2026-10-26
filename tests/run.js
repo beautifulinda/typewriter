@@ -110,7 +110,7 @@ test('注音音節', '拼不出來的組合不併成一格（ㄗㄧ、ㄧㄟ、�
   }
 });
 test('注音音節', '詞庫和課文裡的讀音都拼得出來', () => {
-  const strip = r => [...r].filter(c => ZY_PART(c) >= 0 && ZY_PART(c) < 3).join('');
+  const strip = r => zyParts({ c: r }).syms.join('');
   const rs = Object.values(POYIN).flatMap(v => v.map(([r]) => r))
     .concat(LESSONS.flatMap(l => [...(l.items || []).map(([, z]) => z), ...(l.zy || [])]).filter(Boolean));
   const bad = [...new Set(rs.map(strip))].filter(s => s && !ZY_PREFIX.has(s));

@@ -51,7 +51,9 @@ const ZY_SYLLABLES = {
   ㄌ: 'ㄚ ㄛ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄤ ㄥ ㄧ ㄧㄚ ㄧㄝ ㄧㄠ ㄧㄡ ㄧㄢ ㄧㄣ ㄧㄤ ㄧㄥ ㄨ ㄨㄛ ㄨㄢ ㄨㄣ ㄨㄥ ㄩ ㄩㄝ ㄩㄢ',
   ㄍ: ZY_GKH, ㄎ: ZY_GKH, ㄏ: ZY_GKH,
   ㄐ: ZY_JQX, ㄑ: ZY_JQX, ㄒ: ZY_JQX,
-  ㄓ: '- ' + ZY_GKH, ㄔ: '- ' + ZY_GKH.replace(' ㄟ', ''), ㄕ: '- ' + ZY_GKH.replace(' ㄨㄥ', ''),
+  ㄓ: '- ' + ZY_GKH,
+  ㄔ: '- ㄚ ㄜ ㄞ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄚ ㄨㄛ ㄨㄞ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄤ ㄨㄥ',
+  ㄕ: '- ㄚ ㄜ ㄞ ㄟ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄚ ㄨㄛ ㄨㄞ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄤ',
   ㄖ: '- ㄜ ㄠ ㄡ ㄢ ㄣ ㄤ ㄥ ㄨ ㄨㄛ ㄨㄟ ㄨㄢ ㄨㄣ ㄨㄥ',
   ㄗ: ZY_ZCS + ' ㄟ', ㄘ: ZY_ZCS, ㄙ: ZY_ZCS,
 };
@@ -61,9 +63,9 @@ for (const [i, fs] of Object.entries(ZY_SYLLABLES)) for (const f of fs.split(' '
   const s = [...i + (f === '-' ? '' : f)];
   s.forEach((_, k) => ZY_PREFIX.add(s.slice(0, k + 1).join('')));
 }
-// 能不能接在上一個音節後面：要照聲母→介音→韻母→聲調的順序、拼得出國語有的音節；打了聲調（或空白當一聲）就結束
-const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && ZY_PART(c) > Math.max(...[...ch.c].map(ZY_PART))
-  && (ZY_PART(c) === 3 || ZY_PREFIX.has(ch.c + c));
+// 能不能接在上一個音節後面：接上去要還是某個音節的開頭（順序不對、拼不出來都不行）；
+// 聲調接在任何還沒結束的音節後面；打了聲調（或空白當一聲）就結束
+const zyJoins = (ch, c) => !!ch?.zy && !ch.done && isZy(c) && (ZY_PART(c) === 3 || ZY_PREFIX.has(ch.c + c));
 function zyParts(ch) {
   const s = [...ch.c];
   return { syms: s.filter(c => ZY_PART(c) < 3), tone: s.find(c => ZY_PART(c) === 3) || '' };

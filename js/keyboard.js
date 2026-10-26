@@ -1,8 +1,9 @@
 // ---------- 實體鍵盤與注音輸入 ----------
 let composing = false;
 const preedit = $('preedit');
-// 練習與 ㄅㄆㄇ 模式看按鍵位置打注音，輸入框不能拿到焦點：不然電腦的輸入法會同時在裡面拼字，送出時一次打上一大串
-const imeOff = () => practice || layout === 'zhuyin';
+// 練習與不經過輸入法的模式（LAYOUTS 的 ime: false）看按鍵位置打注音，輸入框不能拿到焦點：
+// 不然電腦的輸入法會同時在裡面拼字，送出時一次打上一大串
+const imeOff = () => practice || !LAYOUTS[layout].ime;
 ime.addEventListener('focus', () => { if (imeOff()) ime.blur(); });
 ime.addEventListener('compositionstart', () => { composing = true; });
 ime.addEventListener('compositionupdate', e => {
@@ -28,7 +29,7 @@ ime.addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
   if (practice && practiceKey(e)) { keyEl(e)?.classList.add('down'); return; }
   if (!practice && layout === 'zhuyin' && zhuyinKey(e)) { keyEl(e)?.classList.add('down'); return; }
-  if (!imeOff() && e.target !== ime && !e.target.closest?.('button')) {
+  if (e.target !== ime && !e.target.closest?.('button')) {
     if (e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace') ime.focus();
   }
   if (e.key === 'Escape') $('picker').hidden = true;
@@ -36,21 +37,21 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => {
   if (e.key === 'Meta') releaseKeys();                  // Mac 按住 Command 時，其他鍵放開不會送 keyup
-  else if (!(e.key === 'Shift' && shift)) keyEl(e)?.classList.remove('down');   // 畫面上的「大寫」按著時不跟著彈起
+  else release(keyEl(e));
 });
 const keyEl = e => document.querySelector(`.key[data-code="${e.code}"]`);
+// 鍵帽彈回來；畫面上的「大寫」按著時不彈
+const release = k => { if (k && !(k.dataset.act === 'shift' && shift)) k.classList.remove('down'); };
 // 收不到 keyup 的時候（切到別的視窗、跳出聽寫、切換全螢幕），鍵帽全部彈回來，不然會一直壓著
-const releaseKeys = () => keys.querySelectorAll('.key.down').forEach(k => { if (!(k.dataset.act === 'shift' && shift)) k.classList.remove('down'); });
-addEventListener('blur', () => releaseKeys());
-document.addEventListener('visibilitychange', () => releaseKeys());
-document.addEventListener('fullscreenchange', () => releaseKeys());
-document.addEventListener('webkitfullscreenchange', () => releaseKeys());
+const releaseKeys = () => keys.querySelectorAll('.key.down').forEach(release);
+addEventListener('blur', releaseKeys);
+document.addEventListener('visibilitychange', releaseKeys);
 
 const coarse = matchMedia('(pointer: coarse)').matches;
 // 練習或 ㄅㄆㄇ 模式不讓輸入法接手（才能直接用按鍵位置對應注音）；國字模式在平板上也要叫出系統鍵盤
 // 剛按過的按鈕也要放掉焦點，不然 Enter／空白會變成再按一次按鈕，打不上紙
 const focusTyping = () => {
-  if (practice || layout === 'zhuyin') { ime.blur(); document.activeElement?.closest?.('button')?.blur(); }
+  if (imeOff()) { ime.blur(); document.activeElement?.closest?.('button')?.blur(); }
   else if (!coarse || layout === 'ime') ime.focus({ preventScroll: true });
 };
 win.addEventListener('click', () => { audio(); focusTyping(); });
@@ -91,27 +92,27 @@ function renderLegends() {
   });
   document.querySelectorAll('[data-layout]').forEach(b => b.setAttribute('aria-pressed', b.dataset.layout === layout));
 }
-// 輸入有三種：
+// 輸入有三種（ime：經不經過電腦的輸入法；tip：切過來時的提示）：
 //   en     ABC：照電腦的輸入法打
 //   zhuyin ㄅㄆㄇ：直接打注音符號，不選字。實體鍵盤看按鍵位置對應注音，不經過電腦的輸入法
 //   ime    國字：用電腦的注音輸入法選字
 // why：'auto' 是打字時偵測到輸入法改變而自動切換；'click' 是自己按的。兩種都提示一次
-const LAYOUT_TIP = {
-  en: '打英文。電腦的輸入法請切到英文。',
-  zhuyin: '直接打注音符號，不會選成國字。標點按住 Shift：Shift＋逗點＝，　Shift＋句點＝。',
-  ime: '用電腦的注音輸入法打字，選好的國字會打上紙。電腦的輸入法請切到注音。',
+const LAYOUTS = {
+  en: { ime: true, tip: '打英文。電腦的輸入法請切到英文。' },
+  zhuyin: { ime: false, tip: '直接打注音符號，不會選成國字。標點按住 Shift：Shift＋逗點＝，　Shift＋句點＝。' },
+  ime: { ime: true, tip: '用電腦的注音輸入法打字，選好的國字會打上紙。電腦的輸入法請切到注音。' },
 };
 function setLayout(next, why) {
   if (next === layout) return;
   layout = next; renderLegends();
   try { localStorage.setItem('typewriter:layout', layout); } catch {}
   if (why === 'auto') toast(layout === 'ime' ? '偵測到注音輸入法，換成「國字」。想直接打注音符號請按「ㄅㄆㄇ」。' : '偵測到英文輸入，換成「ABC」。');
-  else if (why === 'click') toast(LAYOUT_TIP[layout]);
+  else if (why === 'click') toast(LAYOUTS[layout].tip);
 }
 document.querySelectorAll('[data-layout]').forEach(b => {
   b.onclick = () => { setLayout(b.dataset.layout, 'click'); audio(); focusTyping(); };
 });
-try { const saved = localStorage.getItem('typewriter:layout'); if (saved in LAYOUT_TIP) layout = saved; } catch {}
+try { const saved = localStorage.getItem('typewriter:layout'); if (saved in LAYOUTS) layout = saved; } catch {}
 renderLegends();
 // 實體鍵盤的按鍵位置 → 鍵帽上的字（e.code → 'Q'）
 const CODE2CHAR = {};

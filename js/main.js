@@ -98,7 +98,7 @@ if (root.requestFullscreen || root.webkitRequestFullscreen) {
   };
   const sync = () => {
     const on = !!fsElement();
-    lockKeys(on);
+    lockKeys(on); releaseKeys();
     fsBtn.classList.toggle('on', on);
     fsBtn.setAttribute('aria-label', on ? '離開全螢幕' : '全螢幕'); fsBtn.title = on ? '離開全螢幕' : '全螢幕';
     setTimeout(() => place(false), 50);
@@ -118,8 +118,8 @@ function lockKeys(on) {
     toast('要離開全螢幕：按住 Esc 兩秒，或按右上角的按鈕。');
   } else navigator.keyboard.unlock();
 }
-const strayKey = e =>
-  /^F\d+$/.test(e.code) || /^(Browser|Audio|Media|Launch)|^(Help|ContextMenu|Power|Sleep|WakeUp)$/.test(e.code)
+const STRAY_CODE = /^(F\d+|(Browser|Audio|Media|Launch)\w*|Help|ContextMenu|Power|Sleep|WakeUp)$/;   // 功能鍵、瀏覽器／音量／媒體鍵
+const strayKey = e => STRAY_CODE.test(e.code)
   || e.metaKey || (e.ctrlKey && e.code !== 'Space');                   // Ctrl＋空白 是切換輸入法，留給電腦
 addEventListener('keydown', e => {
   if (fsElement() && strayKey(e)) { e.preventDefault(); e.stopImmediatePropagation(); }
