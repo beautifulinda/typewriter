@@ -2,6 +2,7 @@
 // 每種字一筆設定，加新的一種字只要在 KINDS 加一筆，排版、打字、退格都會照著做：
 //   is(ch)        這個字是不是這一種（照順序找，第一個符合的算）
 //   accepts(c)    打 c 時要不要開這一種字；init(ch, c) 開新字時補上這種字的欄位
+//   alone(c)      c 能不能自己開一格（沒寫就是可以）；不行時 c 只能併進上一格，併不進去就打不上去
 //   cells()       佔幾格；rows：有這種字的行要幾列高
 //   join(ch, c)   打 c 時能不能併進 ch 這一格：回傳 'join'（併進去，要重畫）、'close'（只結束、畫面不變）或 false
 //   back(ch)      退格時先從字裡退一部分：退了回傳 true；false 就整個字刪掉
@@ -14,7 +15,8 @@ const KINDS = [
     name: 'zy',                              // 直式注音音節
     is: ch => !!ch.zy,
     accepts: c => isZy(c),
-    init: (ch, c) => { ch.zy = true; ch.w = 2; if (ZY_PART(c) === 3) ch.done = true; },
+    alone: c => ZY_PART(c) !== 3,            // 聲調要跟在注音後面，不能單獨一格
+    init: (ch, c) => { ch.zy = true; ch.w = 2; },
     cells: () => 3, rows: 2, grid: true,
     ink(ch, g) {
       // 位置照 zyLayout 算（以字高為單位）；聲調掛在最後一個符號右上，輕聲是畫的圓點
@@ -59,13 +61,16 @@ const kindOf = ch => KINDS.find(k => k.is(ch));
 //   { join: ch }   併進上一格，ch 要重畫
 //   { close: ch }  只結束上一格，畫面不變
 //   { add: ch, wrap, grow }  新的一格；wrap：先自動換行了，grow：這一行變高了
+//   {}             打不上去（例如單獨的聲調）
 function typeInto(ls, c, cols) {
   let line = ls.at(-1);
   const prev = line.at(-1);
   const r = prev && kindOf(prev).join?.(prev, c);
   if (r) return { [r]: prev };
+  const kind = KINDS.find(k => k.accepts(c));
+  if (kind.alone && !kind.alone(c)) return {};
   const ch = makeChar(c);
-  KINDS.find(k => k.accepts(c)).init?.(ch, c);
+  kind.init?.(ch, c);
   // 打到右邊界自動換行（小朋友友善；真正的打字機會卡住）
   const wrap = cellsOf(line) + cells(ch) > cols;
   if (wrap) { ls.push([]); line = ls.at(-1); }

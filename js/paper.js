@@ -92,6 +92,7 @@ function typeChar(c) {
   const r = typeInto(lines, c, g.cols);
   if (r.join) { redraw(r.join); hit(); buzz(6); saveSoon(); return; }      // 注音併進同一格，滑架不動
   if (r.close) { sounds.space(); saveSoon(); return; }
+  if (!r.add) { sounds.oops(); return; }
   const ch = r.add, line = lines.at(-1);
   if (r.wrap) showNewLine(true);
   // 這一行變高了（第一個注音格子）：整張重畫

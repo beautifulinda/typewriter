@@ -109,6 +109,13 @@ test('注音音節', '拼不出來的組合不併成一格（ㄗㄧ、ㄧㄟ、�
     reset(); type(s); eq(lastLine(), want, `${s}：`);
   }
 });
+test('注音音節', '單獨的聲調打不上去（前面沒有注音、接在打完的音節後面）', () => {
+  reset(); type('ˋ'); eq(lastLine(), []);
+  type('ㄅㄚˋˊ'); eq(lastLine(), ['ㄅㄚˋ']);
+  type(' ˇ'); eq(lastLine(), ['ㄅㄚˋ', ' ']);
+  reset(); type('ㄇㄚ ˇ'); eq(lastLine(), ['ㄇㄚ'], '空白當一聲結束後：');
+  eq(typeInto([[]], 'ˋ', 40), {}, 'typeInto 回傳：');
+});
 test('注音音節', '詞庫和課文裡的讀音都拼得出來', () => {
   const strip = r => zyParts({ c: r }).syms.join('');
   const rs = Object.values(POYIN).flatMap(v => v.map(([r]) => r))
